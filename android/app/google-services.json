@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "53888308853",
+    "project_id": "okoskert-dev",
+    "storage_bucket": "okoskert-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:53888308853:android:fb260b16c98dc14668ca3c",
+        "android_client_info": {
+          "package_name": "com.example.okoskert_internal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCL-JePkyxQNViHKnPP8Sg8vUiFMEVUtQg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

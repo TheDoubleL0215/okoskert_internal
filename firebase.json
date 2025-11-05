@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"default":{"projectId":"okoskert-dev","appId":"1:53888308853:android:fb260b16c98dc14668ca3c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"okoskert-dev","configurations":{"android":"1:53888308853:android:fb260b16c98dc14668ca3c","ios":"1:53888308853:ios:b3243ce59cca657568ca3c"}}}}}}

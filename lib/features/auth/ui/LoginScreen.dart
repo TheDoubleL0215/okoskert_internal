@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:okoskert_internal/core/utils/login_error_messages.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Sikeres bejelentkezés után az AuthGate automatikusan átvált a HomePage-re
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = _getErrorMessage(e.code);
+        _errorMessage = getLoginErrorMessage(e.code);
       });
     } catch (e) {
       setState(() {
@@ -52,25 +53,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  String _getErrorMessage(String code) {
-    switch (code) {
-      case 'user-not-found':
-        return 'Nem található felhasználó ezzel az email címmel.';
-      case 'wrong-password':
-        return 'Helytelen jelszó.';
-      case 'invalid-email':
-        return 'Érvénytelen email cím.';
-      case 'user-disabled':
-        return 'Ez a felhasználói fiók le van tiltva.';
-      case 'too-many-requests':
-        return 'Túl sok sikertelen próbálkozás. Kérjük, próbáld később.';
-      case 'network-request-failed':
-        return 'Hálózati hiba. Kérjük, ellenőrizd az internetkapcsolatod.';
-      default:
-        return 'Bejelentkezési hiba: ${code}';
     }
   }
 

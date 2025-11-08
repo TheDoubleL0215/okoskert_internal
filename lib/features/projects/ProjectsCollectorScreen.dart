@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:okoskert_internal/features/projects/create_project/CreateProjectScreen.dart';
+import 'package:okoskert_internal/features/projects/ui/ProjectTile.dart';
 
 class Projectscollectorscreen extends StatefulWidget {
   const Projectscollectorscreen({super.key});
@@ -87,13 +89,45 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                     ],
                   ),
                   Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildProjectList("Folyamatban lévő projektek"),
-                        _buildProjectList("Kész projektek"),
-                        _buildProjectList("Karbantartás"),
-                      ],
+                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream:
+                          FirebaseFirestore.instance
+                              .collection('projects')
+                              .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                'Hiba történt a projektek betöltésekor: ${snapshot.error}',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        }
+
+                        final allDocs = snapshot.data?.docs ?? [];
+
+                        return TabBarView(
+                          controller: _tabController,
+                          children: [
+                            buildProjectList(allDocs, "ongoing"),
+                            buildProjectList(allDocs, "done"),
+                            buildProjectList(allDocs, "maintenance"),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -110,22 +144,6 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
           );
         },
         child: Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildProjectList(String sectionName) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      child: Center(
-        child: Text(
-          "$sectionName tartalma",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
-          ),
-        ),
       ),
     );
   }

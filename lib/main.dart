@@ -1,7 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:okoskert_internal/features/auth/AuthGate.dart';
-import 'package:okoskert_internal/firebase_options.dart';
+import 'package:okoskert_internal/app/home_page.dart';
+import 'package:okoskert_internal/data/services/firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:okoskert_internal/features/auth/ui/LoginScreen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +17,12 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      builder:
+          (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          ),
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.lightGreen,
@@ -22,7 +30,21 @@ class MainApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const AuthGate(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final user = snapshot.data;
+          if (user == null) {
+            return const LoginScreen();
+          }
+          return const HomePage();
+        },
+      ),
     );
   }
 }

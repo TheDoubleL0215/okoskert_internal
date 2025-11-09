@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
+import 'package:okoskert_internal/features/machine_hours/MachineHoursScreen.dart';
 import 'package:okoskert_internal/features/projects/create_project/CreateProjectScreen.dart';
 import 'package:okoskert_internal/features/projects/ui/ProjectTile.dart';
 
@@ -15,6 +17,7 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
     with SingleTickerProviderStateMixin {
   int selectedFilterIndex = 0;
   late TabController _tabController;
+  final _exfabKey = GlobalKey<ExpandableFabState>();
 
   final List<String> filterOptions = [
     "Betűrend",
@@ -136,14 +139,52 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CreateProjectScreen()),
-          );
-        },
-        child: Icon(Icons.add),
+      floatingActionButton: ExpandableFab(
+        key: _exfabKey,
+        type: ExpandableFabType.up,
+        childrenAnimation: ExpandableFabAnimation.none,
+        distance: 70,
+        overlayStyle: ExpandableFabOverlayStyle(
+          color: Colors.white.withValues(alpha: 0.7),
+        ),
+        children: [
+          Row(
+            children: [
+              FloatingActionButton.extended(
+                label: Text('Munkagépek kezelése'),
+                heroTag: null,
+                icon: Icon(Icons.av_timer),
+                onPressed: () {
+                  _exfabKey.currentState?.close();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MachineHoursScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              FloatingActionButton.extended(
+                label: Text('Új projekt létrehozása'),
+                heroTag: null,
+                onPressed: () {
+                  _exfabKey.currentState?.close();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CreateProjectScreen(),
+                    ),
+                  );
+                },
+                icon: Icon(Icons.add),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

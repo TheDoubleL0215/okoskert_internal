@@ -37,10 +37,10 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("${widget.projectName} - Munkanapló"),
+        title: Text(widget.projectName),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [Tab(text: 'Munkanapló'), Tab(text: 'Képek')],
+          tabs: const [Tab(text: 'Munkaórák'), Tab(text: 'Képek')],
         ),
       ),
       body: TabBarView(
@@ -59,7 +59,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
           Row(
             children: [
               FloatingActionButton.extended(
-                label: Text('Új munkanapló bejegyzés'),
+                label: Text('Új munkaóra hozzáadása'),
                 heroTag: null,
                 onPressed: () {
                   Navigator.push(
@@ -74,16 +74,6 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
                   );
                 },
                 icon: Icon(Icons.person_add),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              FloatingActionButton.extended(
-                label: Text('Óraállás hozzáadása'),
-                heroTag: null,
-                onPressed: null,
-                icon: Icon(Icons.more_time),
               ),
             ],
           ),

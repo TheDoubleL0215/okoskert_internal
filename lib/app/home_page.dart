@@ -11,7 +11,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int currentPageIndex = 2;
+  int currentPageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,6 @@ class _HomePageState extends State<HomePage> {
           <Widget>[
             Projectscollectorscreen(),
             Scaffold(body: Center(child: Text("Naptár"))),
-            MachineHoursScreen(),
             AdminPage(),
           ][currentPageIndex],
 
@@ -41,7 +40,6 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.calendar_month),
             label: 'Naptár',
           ),
-          NavigationDestination(icon: Icon(Icons.av_timer), label: 'Üzemórák'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Admin'),
         ],
       ),

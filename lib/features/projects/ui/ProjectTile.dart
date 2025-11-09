@@ -33,31 +33,21 @@ Widget buildProjectList(
       final projectLocation = (data['projectLocation'] ?? '') as String;
       final projectType = (data['projectType'] ?? '') as String;
 
-      return Card(
-        child: ListTile(
-          title: Text(projectName.isEmpty ? 'Névtelen projekt' : projectName),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (customerName.isNotEmpty) Text('Megrendelő: $customerName'),
-              if (projectLocation.isNotEmpty)
-                Text('Helyszín: $projectLocation'),
-              if (projectType.isNotEmpty) Text('Típus: $projectType'),
-            ],
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (context) => ProjectDetailsScreen(
-                      projectId: filteredDocs[index].id,
-                      projectName: projectName,
-                    ),
-              ),
-            );
-          },
-        ),
+      return ListTile(
+        title: Text(projectName.isEmpty ? 'Névtelen projekt' : projectName),
+        subtitle: Text(projectLocation),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => ProjectDetailsScreen(
+                    projectId: filteredDocs[index].id,
+                    projectName: projectName,
+                  ),
+            ),
+          );
+        },
       );
     },
   );

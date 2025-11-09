@@ -13,6 +13,8 @@ dependencies:
   firebase_auth: ^6.1.2
   cloud_firestore: ^6.1.0
   flutter_expandable_fab: ^2.5.2
+  maps_launcher: ^3.0.0+1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

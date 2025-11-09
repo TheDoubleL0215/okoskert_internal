@@ -21,7 +21,7 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Üzemóra állás')),
+      appBar: AppBar(title: const Text('Munkagépek kezelése')),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream:
             FirebaseFirestore.instance
@@ -58,45 +58,53 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
           }
 
           return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ListView.separated(
-              itemCount: machineDocs.length,
-              itemBuilder: (context, index) {
-                final doc = machineDocs[index];
-                final data = doc.data();
-                final name = data['name'] as String? ?? 'Ismeretlen';
-                final hours = data['hours'] as num? ?? 0;
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: _showAddMachineModal,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Új gép hozzáadása'),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: machineDocs.length,
+                    itemBuilder: (context, index) {
+                      final doc = machineDocs[index];
+                      final data = doc.data();
+                      final name = data['name'] as String? ?? 'Ismeretlen';
+                      final hours = data['hours'] as num? ?? 0;
 
-                return ListTile(
-                  leading: Hero(
-                    tag: doc.id,
-                    child: CircleAvatar(child: const Icon(Icons.agriculture)),
-                  ),
-                  title: Text(name),
-                  subtitle: Text('Óraállás: $hours'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => MachineDetailsScreen(
-                              machineValue: hours.toString(),
-                              machineName: name,
-                              machineId: doc.id,
+                      return ListTile(
+                        leading: Hero(
+                          tag: doc.id,
+                          child: CircleAvatar(
+                            child: const Icon(Icons.agriculture),
+                          ),
+                        ),
+                        title: Text(name),
+                        subtitle: Text('Óraállás: $hours'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      MachineDetailsScreen(machineId: doc.id),
                             ),
-                      ),
-                    );
-                  },
-                );
-              },
-              separatorBuilder: (context, index) => const Divider(),
+                          );
+                        },
+                      );
+                    },
+                    separatorBuilder: (context, index) => const Divider(),
+                  ),
+                ),
+              ],
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddMachineModal,
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -214,11 +222,8 @@ class _AddMachineBottomSheetState extends State<AddMachineBottomSheet> {
               },
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
+            FilledButton(
               onPressed: _isSaving ? null : _saveMachine,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
               child:
                   _isSaving
                       ? const SizedBox(

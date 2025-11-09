@@ -196,8 +196,8 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: FilledButton(
-              child: const Text('Mentés'),
               onPressed: _saveWorkLog,
+              child: const Text('Mentés'),
             ),
           ),
         ],

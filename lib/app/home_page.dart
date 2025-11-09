@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/features/admin/AdminPage.dart';
+import 'package:okoskert_internal/features/machine_hours/MachineHoursScreen.dart';
 import 'package:okoskert_internal/features/projects/ProjectsCollectorScreen.dart';
 
 class HomePage extends StatefulWidget {
@@ -10,7 +11,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int currentPageIndex = 0;
+  int currentPageIndex = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +20,7 @@ class _HomePageState extends State<HomePage> {
           <Widget>[
             Projectscollectorscreen(),
             Scaffold(body: Center(child: Text("Naptár"))),
+            MachineHoursScreen(),
             AdminPage(),
           ][currentPageIndex],
 
@@ -39,6 +41,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.calendar_month),
             label: 'Naptár',
           ),
+          NavigationDestination(icon: Icon(Icons.av_timer), label: 'Üzemórák'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Admin'),
         ],
       ),

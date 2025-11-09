@@ -24,7 +24,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -40,16 +40,12 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
         title: Text("${widget.projectName} - Munkanapló"),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Munkanapló'),
-            Tab(text: 'Gépek'),
-            Tab(text: 'Képek'),
-          ],
+          tabs: const [Tab(text: 'Munkanapló'), Tab(text: 'Képek')],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildDataTab(), _buildMachineryLogTab(), _buildImagesTab()],
+        children: [_buildDataTab(), _buildImagesTab()],
       ),
       floatingActionButtonLocation: ExpandableFab.location,
       floatingActionButton: ExpandableFab(
@@ -171,7 +167,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
@@ -203,36 +199,38 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
               final breakMinutes = data['breakMinutes'] as int? ?? 0;
               final date = data['date'] as Timestamp?;
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8.0),
-                child: ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(employeeName),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (startTime != null && endTime != null)
-                        Text(
-                          'Időtartam: ${_formatTime(startTime.toDate())} - ${_formatTime(endTime.toDate())}',
-                          style: const TextStyle(fontSize: 12),
+              return Column(
+                children: [
+                  ListTile(
+                    leading: CircleAvatar(child: const Icon(Icons.person)),
+                    title: Text(employeeName),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (startTime != null && endTime != null)
+                          Text(
+                            'Időtartam: ${_formatTime(startTime.toDate())} - ${_formatTime(endTime.toDate())}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        if (breakMinutes > 0)
+                          Text(
+                            'Szünet: $breakMinutes perc',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                      ],
+                    ),
+                    onTap:
+                        () => _showEditBottomSheet(
+                          context,
+                          doc,
+                          startTime?.toDate(),
+                          endTime?.toDate(),
+                          breakMinutes,
+                          date?.toDate(),
                         ),
-                      if (breakMinutes > 0)
-                        Text(
-                          'Szünet: $breakMinutes perc',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                    ],
                   ),
-                  onTap:
-                      () => _showEditBottomSheet(
-                        context,
-                        doc,
-                        startTime?.toDate(),
-                        endTime?.toDate(),
-                        breakMinutes,
-                        date?.toDate(),
-                      ),
-                ),
+                  const Divider(),
+                ],
               );
             }
           },
@@ -271,10 +269,6 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
             initialDate: initialDate,
           ),
     );
-  }
-
-  Widget _buildMachineryLogTab() {
-    return const Center(child: Text('Gépek tab tartalma'));
   }
 
   Widget _buildImagesTab() {

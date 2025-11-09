@@ -12,6 +12,7 @@ class EditWorklogBottomSheet extends StatefulWidget {
   final DateTime? initialDate;
 
   const EditWorklogBottomSheet({
+    super.key,
     required this.doc,
     required this.projectId,
     this.initialStartTime,

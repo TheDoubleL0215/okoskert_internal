@@ -17,8 +17,6 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
     with SingleTickerProviderStateMixin {
   int selectedFilterIndex = 0;
   late TabController _tabController;
-  final _exfabKey = GlobalKey<ExpandableFabState>();
-
   final List<String> filterOptions = [
     "Betűrend",
     "Állapot",
@@ -140,7 +138,6 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
         ),
       ),
       floatingActionButton: ExpandableFab(
-        key: _exfabKey,
         type: ExpandableFabType.up,
         childrenAnimation: ExpandableFabAnimation.none,
         distance: 70,
@@ -155,7 +152,6 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                 heroTag: null,
                 icon: Icon(Icons.av_timer),
                 onPressed: () {
-                  _exfabKey.currentState?.close();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -172,7 +168,6 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                 label: Text('Új projekt létrehozása'),
                 heroTag: null,
                 onPressed: () {
-                  _exfabKey.currentState?.close();
                   Navigator.push(
                     context,
                     MaterialPageRoute(

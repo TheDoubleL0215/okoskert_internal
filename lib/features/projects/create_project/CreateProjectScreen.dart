@@ -185,7 +185,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                 )
               else
                 DropdownButtonFormField<String>(
-                  value: _selectedProjectTypeId,
+                  initialValue: _selectedProjectTypeId,
                   decoration: const InputDecoration(
                     labelText: 'Projekt típusa',
                     border: OutlineInputBorder(),

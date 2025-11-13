@@ -134,7 +134,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
             const Text('Nincsenek elérhető dolgozók')
           else
             DropdownButtonFormField<String>(
-              value: _selectedEmployeeName,
+              initialValue: _selectedEmployeeName,
               decoration: const InputDecoration(
                 labelText: 'Dolgozó',
                 border: OutlineInputBorder(),

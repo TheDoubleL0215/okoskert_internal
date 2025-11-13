@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueWorklogEntryEdit.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ProjectAddDataCollegues.dart';
+import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_images/ProjectAddImageScreen.dart';
 
 class ProjectDataScreen extends StatefulWidget {
   final String projectId;
@@ -47,185 +47,162 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
         controller: _tabController,
         children: [_buildDataTab(), _buildImagesTab()],
       ),
-      floatingActionButtonLocation: ExpandableFab.location,
-      floatingActionButton: ExpandableFab(
-        type: ExpandableFabType.up,
-        childrenAnimation: ExpandableFabAnimation.none,
-        distance: 70,
-        overlayStyle: ExpandableFabOverlayStyle(
-          color: Colors.white.withValues(alpha: 0.7),
-        ),
-        children: [
-          Row(
-            children: [
-              FloatingActionButton.extended(
-                label: Text('Új munkaóra hozzáadása'),
-                heroTag: null,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => ProjectAddDataCollegues(
-                            projectId: widget.projectId,
-                            projectName: widget.projectName,
-                          ),
-                    ),
-                  );
-                },
-                icon: Icon(Icons.person_add),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              FloatingActionButton.extended(
-                label: Text('Kép hozzáadása'),
-                heroTag: null,
-                onPressed: null,
-                icon: Icon(Icons.add_a_photo),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildDataTab() {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream:
-          FirebaseFirestore.instance
-              .collection('projects')
-              .doc(widget.projectId)
-              .collection('worklog')
-              .orderBy('date', descending: true)
-              .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-                textAlign: TextAlign.center,
-              ),
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        label: Text('Új munkaóra hozzáadása'),
+        heroTag: null,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => ProjectAddDataCollegues(
+                    projectId: widget.projectId,
+                    projectName: widget.projectName,
+                  ),
             ),
           );
-        }
-
-        final worklogDocs = snapshot.data?.docs ?? [];
-
-        if (worklogDocs.isEmpty) {
-          return const Center(
-            child: Text(
-              'Még nincsenek munkanapló bejegyzések',
-              style: TextStyle(fontSize: 16),
-            ),
-          );
-        }
-
-        // Csoportosítás dátum szerint
-        final groupedByDate =
-            <String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>{};
-
-        for (final doc in worklogDocs) {
-          final data = doc.data();
-          final date = data['date'] as Timestamp?;
-          if (date != null) {
-            final dateKey = _getDateKey(date.toDate());
-            groupedByDate.putIfAbsent(dateKey, () => []).add(doc);
+        },
+        icon: Icon(Icons.person_add),
+      ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream:
+            FirebaseFirestore.instance
+                .collection('projects')
+                .doc(widget.projectId)
+                .collection('worklog')
+                .orderBy('date', descending: true)
+                .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
-        }
 
-        // Dátumok rendezése (legújabb elöl)
-        final sortedDates =
-            groupedByDate.keys.toList()..sort((a, b) => b.compareTo(a));
-
-        // Flattened lista: fejlécek + bejegyzések
-        final items = <_WorklogItem>[];
-        for (final dateKey in sortedDates) {
-          items.add(_WorklogItem.isHeader(dateKey));
-          for (final doc in groupedByDate[dateKey]!) {
-            items.add(_WorklogItem.isEntry(doc));
-          }
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-
-            if (item.isHeader) {
-              // Dátum fejléc
-              final dateParts = item.dateKey!.split('-');
-              final formattedDate =
-                  '${dateParts[0]}. ${dateParts[1]}. ${dateParts[2]}.';
-              return Padding(
-                padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  formattedDate,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  textAlign: TextAlign.center,
                 ),
-              );
-            } else {
-              // Bejegyzés
-              final doc = item.doc!;
-              final data = doc.data();
+              ),
+            );
+          }
 
-              final employeeName =
-                  data['employeeName'] as String? ?? 'Ismeretlen';
-              final startTime = data['startTime'] as Timestamp?;
-              final endTime = data['endTime'] as Timestamp?;
-              final breakMinutes = data['breakMinutes'] as int? ?? 0;
-              final date = data['date'] as Timestamp?;
+          final worklogDocs = snapshot.data?.docs ?? [];
 
-              return Column(
-                children: [
-                  ListTile(
-                    leading: CircleAvatar(child: const Icon(Icons.person)),
-                    title: Text(employeeName),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (startTime != null && endTime != null)
-                          Text(
-                            'Időtartam: ${_formatTime(startTime.toDate())} - ${_formatTime(endTime.toDate())}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        if (breakMinutes > 0)
-                          Text(
-                            'Szünet: $breakMinutes perc',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                      ],
-                    ),
-                    onTap:
-                        () => _showEditBottomSheet(
-                          context,
-                          doc,
-                          startTime?.toDate(),
-                          endTime?.toDate(),
-                          breakMinutes,
-                          date?.toDate(),
-                        ),
-                  ),
-                  const Divider(),
-                ],
-              );
+          if (worklogDocs.isEmpty) {
+            return const Center(
+              child: Text(
+                'Még nincsenek munkanapló bejegyzések',
+                style: TextStyle(fontSize: 16),
+              ),
+            );
+          }
+
+          // Csoportosítás dátum szerint
+          final groupedByDate =
+              <String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>{};
+
+          for (final doc in worklogDocs) {
+            final data = doc.data();
+            final date = data['date'] as Timestamp?;
+            if (date != null) {
+              final dateKey = _getDateKey(date.toDate());
+              groupedByDate.putIfAbsent(dateKey, () => []).add(doc);
             }
-          },
-        );
-      },
+          }
+
+          // Dátumok rendezése (legújabb elöl)
+          final sortedDates =
+              groupedByDate.keys.toList()..sort((a, b) => b.compareTo(a));
+
+          // Flattened lista: fejlécek + bejegyzések
+          final items = <_WorklogItem>[];
+          for (final dateKey in sortedDates) {
+            items.add(_WorklogItem.isHeader(dateKey));
+            for (final doc in groupedByDate[dateKey]!) {
+              items.add(_WorklogItem.isEntry(doc));
+            }
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+
+              if (item.isHeader) {
+                // Dátum fejléc
+                final dateParts = item.dateKey!.split('-');
+                final formattedDate =
+                    '${dateParts[0]}. ${dateParts[1]}. ${dateParts[2]}.';
+                return Padding(
+                  padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                  child: Text(
+                    formattedDate,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                );
+              } else {
+                // Bejegyzés
+                final doc = item.doc!;
+                final data = doc.data();
+
+                final employeeName =
+                    data['employeeName'] as String? ?? 'Ismeretlen';
+                final startTime = data['startTime'] as Timestamp?;
+                final endTime = data['endTime'] as Timestamp?;
+                final breakMinutes = data['breakMinutes'] as int? ?? 0;
+                final date = data['date'] as Timestamp?;
+
+                return Column(
+                  children: [
+                    ListTile(
+                      leading: CircleAvatar(child: const Icon(Icons.person)),
+                      title: Text(employeeName),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (startTime != null && endTime != null)
+                            Text(
+                              'Időtartam: ${_formatTime(startTime.toDate())} - ${_formatTime(endTime.toDate())}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          if (breakMinutes > 0)
+                            Text(
+                              'Szünet: $breakMinutes perc',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                        ],
+                      ),
+                      onTap:
+                          () => _showEditBottomSheet(
+                            context,
+                            doc,
+                            startTime?.toDate(),
+                            endTime?.toDate(),
+                            breakMinutes,
+                            date?.toDate(),
+                          ),
+                    ),
+                    const Divider(),
+                  ],
+                );
+              }
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -262,7 +239,24 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
   }
 
   Widget _buildImagesTab() {
-    return const Center(child: Text('Képek tab tartalma'));
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        label: Text('Kép hozzáadása'),
+        heroTag: null,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) =>
+                      ProjectAddImageScreen(projectId: widget.projectId),
+            ),
+          );
+        },
+        icon: Icon(Icons.add_a_photo),
+      ),
+      body: Center(child: Text("Képek tab tartalma")),
+    );
   }
 }
 

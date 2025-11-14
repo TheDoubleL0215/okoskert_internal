@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/features/admin/AdminPage.dart';
-import 'package:okoskert_internal/features/machine_hours/MachineHoursScreen.dart';
 import 'package:okoskert_internal/features/projects/ProjectsCollectorScreen.dart';
 
 class HomePage extends StatefulWidget {

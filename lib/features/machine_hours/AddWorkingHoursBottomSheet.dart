@@ -281,7 +281,7 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
             if (_isProjectEnabled) ...[
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedProjectId,
+                initialValue: _selectedProjectId,
                 decoration: const InputDecoration(
                   labelText: 'Projekt kiválasztása',
                   border: OutlineInputBorder(),
@@ -319,7 +319,10 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                      : const Text('Mentés'),
+                      : const Text(
+                        'Mentés',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
             ),
             const SizedBox(height: 16),
           ],

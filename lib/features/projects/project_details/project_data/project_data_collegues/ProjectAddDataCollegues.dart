@@ -191,13 +191,22 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.projectName),
+        centerTitle: false,
+        title: Text(
+          "Új bejegyzés",
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: FilledButton(
               onPressed: _saveWorkLog,
-              child: const Text('Mentés'),
+              child: const Text(
+                'Mentés',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],

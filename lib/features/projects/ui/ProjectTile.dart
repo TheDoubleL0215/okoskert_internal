@@ -34,7 +34,12 @@ Widget buildProjectList(
       final projectType = (data['projectType'] ?? '') as String;
 
       return ListTile(
-        title: Text(projectName.isEmpty ? 'Névtelen projekt' : projectName),
+        title: Text(projectName.isEmpty ? 'Névtelen projekt' : projectName, style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: Theme.of(context).colorScheme.primary,
+          letterSpacing: 0,
+        ),),
         subtitle: Text(projectLocation),
         onTap: () {
           Navigator.push(

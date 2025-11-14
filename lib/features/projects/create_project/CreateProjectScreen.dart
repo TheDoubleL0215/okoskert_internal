@@ -64,16 +64,30 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Új projekt létrehozása')),
+        appBar: AppBar(
+          title: const Text(
+            'Új projekt létrehozása',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Új projekt létrehozása'),
+        title: const Text(
+          'Új projekt létrehozása',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
-          FilledButton(onPressed: _saveProject, child: const Text('Mentés')),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: FilledButton(
+              onPressed: _saveProject,
+              child: const Text('Mentés'),
+            ),
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -112,9 +126,14 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
               ),
               TextFormField(
                 controller: _customerPhoneController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Megrendelő telefonszáma',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  prefixText: '+36 ',
+                  prefixStyle: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
@@ -185,7 +204,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                 )
               else
                 DropdownButtonFormField<String>(
-                  value: _selectedProjectTypeId,
+                  initialValue: _selectedProjectTypeId,
                   decoration: const InputDecoration(
                     labelText: 'Projekt típusa',
                     border: OutlineInputBorder(),
@@ -246,7 +265,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     final Map<String, dynamic> data = {
       'projectName': _nameController.text.trim(),
       'customerName': _customerNameController.text.trim(),
-      'customerPhone': _customerPhoneController.text.trim(),
+      'customerPhone': "+36${_customerPhoneController.text.trim()}",
       'customerEmail': _customerEmailController.text.trim(),
       'projectLocation': _locationController.text.trim(),
       'projectDescription': _descriptionController.text.trim(),

@@ -21,7 +21,12 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Munkagépek kezelése')),
+      appBar: AppBar(
+        title: const Text(
+          'Munkagépek kezelése',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream:
             FirebaseFirestore.instance
@@ -65,7 +70,10 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
                 FilledButton.tonalIcon(
                   onPressed: _showAddMachineModal,
                   icon: const Icon(Icons.add),
-                  label: const Text('Új gép hozzáadása'),
+                  label: const Text(
+                    'Új gép hozzáadása',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -78,14 +86,34 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
                       final hours = data['hours'] as num? ?? 0;
 
                       return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                        ),
                         leading: Hero(
                           tag: doc.id,
                           child: CircleAvatar(
                             child: const Icon(Icons.agriculture),
                           ),
                         ),
-                        title: Text(name),
-                        subtitle: Text('Óraállás: $hours'),
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              name,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        trailing: Text(
+                          '$hours óra',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
                         onTap: () {
                           Navigator.push(
                             context,

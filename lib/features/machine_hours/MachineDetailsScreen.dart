@@ -57,7 +57,12 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Gép részletei")),
+      appBar: AppBar(
+        title: const Text(
+          "Gép részletei",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream:
             FirebaseFirestore.instance
@@ -116,11 +121,21 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                         child: Icon(Icons.agriculture, size: 32),
                       ),
                     ),
-                    Text(machineName, style: const TextStyle(fontSize: 24)),
+                    Text(
+                      machineName,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const Spacer(),
                     Text(
                       workHours.toString(),
-                      style: const TextStyle(fontSize: 24),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -213,7 +228,15 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                                     : '$previousHours -> $newHours  (${(newHours - previousHours)} óra)';
 
                             return ListTile(
-                              title: Text(dateText),
+                              title: Text(
+                                dateText,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
                               subtitle: Text(subtitle),
                             );
                           },

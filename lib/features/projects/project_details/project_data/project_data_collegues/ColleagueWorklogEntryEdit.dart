@@ -200,9 +200,6 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                ),
                 child: const Text('Törlés'),
               ),
             ],
@@ -323,16 +320,11 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                       )
                       : const Text('Mentés'),
             ),
-            const SizedBox(height: 12),
             // Törlés gomb
             OutlinedButton.icon(
               onPressed: _isSaving ? null : _deleteEntry,
               icon: const Icon(Icons.delete),
               label: const Text('Törlés'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-                side: BorderSide(color: Theme.of(context).colorScheme.error),
-              ),
             ),
           ],
         ),

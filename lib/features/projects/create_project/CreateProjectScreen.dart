@@ -265,10 +265,22 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     final Map<String, dynamic> data = {
       'projectName': _nameController.text.trim(),
       'customerName': _customerNameController.text.trim(),
-      'customerPhone': "+36${_customerPhoneController.text.trim()}",
-      'customerEmail': _customerEmailController.text.trim(),
-      'projectLocation': _locationController.text.trim(),
-      'projectDescription': _descriptionController.text.trim(),
+      'customerPhone':
+          _customerPhoneController.text.trim().isNotEmpty
+              ? "+36${_customerPhoneController.text.trim()}"
+              : null,
+      'customerEmail':
+          _customerEmailController.text.trim().isNotEmpty
+              ? _customerEmailController.text.trim()
+              : null,
+      'projectLocation':
+          _locationController.text.trim().isNotEmpty
+              ? _locationController.text.trim()
+              : null,
+      'projectDescription':
+          _descriptionController.text.trim().isNotEmpty
+              ? _descriptionController.text.trim()
+              : null,
       'projectType': projectTypeName,
       'projectStatus': _isMaintenance ? 'maintenance' : 'ongoing',
     };

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:okoskert_internal/data/services/get_project_by_id.dart';
 import 'package:okoskert_internal/data/services/get_worklog_summary.dart';
+import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsContactDetails.dart';
+import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsDescriptionAccordion.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/ProjectDataScreen.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -85,78 +87,25 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          'Elérhetőségek',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                      if (projectData['customerPhone'] != null ||
+                          projectData['customerEmail'] != null ||
+                          projectData['projectLocation'] != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: ProjectDetailsContactDetails(
+                            customerPhone: projectData['customerPhone'],
+                            customerEmail: projectData['customerEmail'],
+                            projectLocation: projectData['projectLocation'],
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 12),
-
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            FilledButton.tonalIcon(
-                              label: Text("${projectData['customerPhone']}"),
-                              onPressed: () {
-                                launchUrlString(
-                                  'tel:${projectData['customerPhone']}',
-                                );
-                              },
-                              icon: Icon(Icons.phone),
-                            ),
-                            FilledButton.tonalIcon(
-                              label: Text(
-                                "${projectData['projectLocation']}",
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              onPressed: () {
-                                MapsLauncher.launchQuery(
-                                  projectData['projectLocation'],
-                                );
-                              },
-                              icon: Icon(Icons.directions),
-                            ),
-                            FilledButton.tonalIcon(
-                              label: Text(
-                                "${projectData['customerEmail']}",
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              onPressed: () {
-                                launchUrlString(
-                                  'mailto:${projectData['customerEmail']}',
-                                );
-                              },
-                              icon: Icon(Icons.email),
-                            ),
-                          ],
+                      if (projectData['projectDescription'] != null &&
+                          projectData['projectDescription']
+                              .toString()
+                              .trim()
+                              .isNotEmpty)
+                        ProjectDetailsDescriptionAccordion(
+                          projectDescription: projectData['projectDescription'],
                         ),
-                      ),
-                      projectData['projectDescription'] != ""
-                          ? ExpansionTile(
-                            expandedAlignment: Alignment.centerLeft,
-                            shape: RoundedRectangleBorder(),
-                            title: Text(
-                              "További információ",
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                ),
-                                child: Text(projectData['projectDescription']),
-                              ),
-                            ],
-                          )
-                          : const SizedBox.shrink(),
                       const SizedBox(height: 24),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -250,7 +199,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                       ),
                     ],
                   ),
-                ),
+                ), //asdasdasd
               ),
               Padding(
                 padding: const EdgeInsets.all(16.0),

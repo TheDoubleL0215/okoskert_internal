@@ -142,111 +142,7 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
               ),
               const Divider(),
               // Work hours log
-              Expanded(
-                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream:
-                      FirebaseFirestore.instance
-                          .collection('machines')
-                          .doc(widget.machineId)
-                          .collection('workHoursLog')
-                          .orderBy('date', descending: true)
-                          .snapshots(),
-                  builder: (context, logSnapshot) {
-                    if (logSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (logSnapshot.hasError) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            'Hiba történt az adatok betöltésekor: ${logSnapshot.error}',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      );
-                    }
-
-                    final logDocs = logSnapshot.data?.docs ?? [];
-                    if (logDocs.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'Még nincsenek óraállás bejegyzések',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      );
-                    }
-
-                    // Collect all unique project IDs from logs
-                    final projectIds =
-                        logDocs
-                            .map((d) => d.data()['assignedProjectId'])
-                            .whereType<String>()
-                            .toSet()
-                            .toList();
-
-                    return FutureBuilder<void>(
-                      future: _loadProjectNames(projectIds),
-                      builder: (context, projectFuture) {
-                        if (projectFuture.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-
-                        return ListView.separated(
-                          padding: const EdgeInsets.all(8.0),
-                          itemCount: logDocs.length,
-                          itemBuilder: (context, index) {
-                            final data = logDocs[index].data();
-                            final date = data['date'] as Timestamp?;
-                            final previousHours =
-                                data['previousHours'].toInt() as num? ?? 0;
-                            final newHours =
-                                data['newHours'].toInt() as num? ?? 0;
-                            final assignedProjectId =
-                                data['assignedProjectId'] as String?;
-                            final projectName =
-                                assignedProjectId != null
-                                    ? _projectNameCache[assignedProjectId] ??
-                                        'Ismeretlen projekt'
-                                    : null;
-
-                            final dateText =
-                                date != null
-                                    ? _formatDate(date.toDate())
-                                    : 'Ismeretlen dátum';
-                            final subtitle =
-                                projectName != null
-                                    ? '$projectName - $previousHours-> $newHours  (${(newHours - previousHours)} óra)'
-                                    : '$previousHours -> $newHours  (${(newHours - previousHours)} óra)';
-
-                            return ListTile(
-                              title: Text(
-                                dateText,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              subtitle: Text(subtitle),
-                            );
-                          },
-                          separatorBuilder: (context, index) => const Divider(),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
+              Expanded(child: machineWorkHoursEntries()),
             ],
           );
         },
@@ -255,6 +151,102 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
         onPressed: _showAddWorkHoursModal,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  StreamBuilder<QuerySnapshot<Map<String, dynamic>>> machineWorkHoursEntries() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream:
+          FirebaseFirestore.instance
+              .collection('machines')
+              .doc(widget.machineId)
+              .collection('workHoursLog')
+              .orderBy('date', descending: true)
+              .snapshots(),
+      builder: (context, logSnapshot) {
+        if (logSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (logSnapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Hiba történt az adatok betöltésekor: ${logSnapshot.error}',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final logDocs = logSnapshot.data?.docs ?? [];
+        if (logDocs.isEmpty) {
+          return const Center(
+            child: Text(
+              'Még nincsenek óraállás bejegyzések',
+              style: TextStyle(fontSize: 16),
+            ),
+          );
+        }
+
+        // Collect all unique project IDs from logs
+        final projectIds =
+            logDocs
+                .map((d) => d.data()['assignedProjectId'])
+                .whereType<String>()
+                .toSet()
+                .toList();
+
+        return FutureBuilder<void>(
+          future: _loadProjectNames(projectIds),
+          builder: (context, projectFuture) {
+            if (projectFuture.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: logDocs.length,
+              itemBuilder: (context, index) {
+                final data = logDocs[index].data();
+                final date = data['date'] as Timestamp?;
+                final previousHours =
+                    data['previousHours'].toInt() as num? ?? 0;
+                final newHours = data['newHours'].toInt() as num? ?? 0;
+                final assignedProjectId = data['assignedProjectId'] as String?;
+                final projectName =
+                    assignedProjectId != null
+                        ? _projectNameCache[assignedProjectId] ??
+                            'Ismeretlen projekt'
+                        : null;
+
+                final dateText =
+                    date != null
+                        ? _formatDate(date.toDate())
+                        : 'Ismeretlen dátum';
+                final subtitle =
+                    projectName != null
+                        ? '$projectName - $previousHours-> $newHours  (${(newHours - previousHours)} óra)'
+                        : '$previousHours -> $newHours  (${(newHours - previousHours)} óra)';
+
+                return ListTile(
+                  title: Text(
+                    dateText,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  subtitle: Text(subtitle),
+                );
+              },
+              separatorBuilder: (context, index) => const Divider(),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:maps_launcher/maps_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class ProjectDetailsContactDetails extends StatelessWidget {
@@ -18,14 +17,11 @@ class ProjectDetailsContactDetails extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Text(
-            'Elérhetőségek',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
+        Text(
+          'Elérhetőségek',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
         customerPhone != null

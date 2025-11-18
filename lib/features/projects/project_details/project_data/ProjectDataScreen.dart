@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueWorklogEntryEdit.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ProjectAddDataCollegues.dart';
+import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_images/ProjectImages.dart';
 
 class ProjectDataScreen extends StatefulWidget {
   final String projectId;
@@ -51,7 +52,10 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildDataTab(), _buildImagesTab()],
+        children: [
+          _buildDataTab(),
+          ProjectImagesScreen(projectId: widget.projectId),
+        ],
       ),
     );
   }
@@ -244,21 +248,6 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
             initialBreakMinutes: initialBreakMinutes,
             initialDate: initialDate,
           ),
-    );
-  }
-
-  Widget _buildImagesTab() {
-    return Scaffold(
-      body: const Center(child: Text('Képek tab tartalma')),
-      floatingActionButton: FloatingActionButton.extended(
-        label: const Text(
-          'Kép hozzáadása',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        heroTag: null,
-        onPressed: null,
-        icon: const Icon(Icons.add_a_photo),
-      ),
     );
   }
 }

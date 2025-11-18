@@ -1,11 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:maps_launcher/maps_launcher.dart';
 import 'package:okoskert_internal/data/services/get_project_by_id.dart';
 import 'package:okoskert_internal/data/services/get_worklog_summary.dart';
 import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsContactDetails.dart';
 import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsDescriptionAccordion.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/ProjectDataScreen.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
   final String projectId;
@@ -84,6 +83,14 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                             color: Theme.of(context).colorScheme.primary,
                             letterSpacing: 0,
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: _buildStatusChip(
+                          context,
+                          projectData['projectStatus'] as String? ?? 'ongoing',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -264,6 +271,188 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       return '${hours}ó';
     } else {
       return '${minutes}p';
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'ongoing':
+        return 'Folyamatban';
+      case 'done':
+        return 'Kész';
+      case 'maintenance':
+        return 'Karbantartás';
+      default:
+        return 'Folyamatban';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'ongoing':
+        return Colors.blue;
+      case 'done':
+        return Colors.green;
+      case 'maintenance':
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  Widget _buildStatusChip(BuildContext context, String currentStatus) {
+    return ActionChip(
+      label: Text(_getStatusLabel(currentStatus)),
+      avatar: Icon(
+        Icons.circle,
+        size: 12,
+        color: _getStatusColor(currentStatus),
+      ),
+      onPressed: () => _showStatusBottomSheet(context, currentStatus),
+      backgroundColor: _getStatusColor(currentStatus).withValues(alpha: 0.1),
+      side: BorderSide(color: _getStatusColor(currentStatus)),
+    );
+  }
+
+  void _showStatusBottomSheet(BuildContext context, String currentStatus) {
+    String? selectedStatus = currentStatus;
+
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setModalState) => Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Projekt állapotának módosítása',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      RadioListTile<String>(
+                        title: const Text('Folyamatban'),
+                        value: 'ongoing',
+                        groupValue: selectedStatus,
+                        onChanged: (value) {
+                          setModalState(() {
+                            selectedStatus = value;
+                          });
+                        },
+                      ),
+                      RadioListTile<String>(
+                        title: const Text('Kész'),
+                        value: 'done',
+                        groupValue: selectedStatus,
+                        onChanged: (value) {
+                          setModalState(() {
+                            selectedStatus = value;
+                          });
+                        },
+                      ),
+                      RadioListTile<String>(
+                        title: const Text('Karbantartás'),
+                        value: 'maintenance',
+                        groupValue: selectedStatus,
+                        onChanged: (value) {
+                          setModalState(() {
+                            selectedStatus = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Mégse'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            onPressed: () {
+                              if (selectedStatus != null &&
+                                  selectedStatus != currentStatus) {
+                                Navigator.pop(context);
+                                _showConfirmDialog(
+                                  context,
+                                  currentStatus,
+                                  selectedStatus!,
+                                );
+                              } else {
+                                Navigator.pop(context);
+                              }
+                            },
+                            child: const Text('Mentés'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+          ),
+    );
+  }
+
+  void _showConfirmDialog(
+    BuildContext context,
+    String oldStatus,
+    String newStatus,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Állapot módosítása'),
+            content: Text(
+              'Biztosan megváltoztatod a projekt állapotát?  "${_getStatusLabel(oldStatus)}" -> "${_getStatusLabel(newStatus)}"',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Mégse'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _updateProjectStatus(newStatus);
+                },
+                child: const Text('Módosítás'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _updateProjectStatus(String newStatus) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('projects')
+          .doc(widget.projectId)
+          .update({'projectStatus': newStatus});
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Projekt állapota sikeresen frissítve: ${_getStatusLabel(newStatus)}',
+          ),
+        ),
+      );
+
+      // Frissítjük a képernyőt
+      setState(() {});
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Hiba történt a frissítéskor: $error')),
+      );
     }
   }
 }

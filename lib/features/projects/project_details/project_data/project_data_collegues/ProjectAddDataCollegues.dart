@@ -198,18 +198,6 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: FilledButton(
-              onPressed: _saveWorkLog,
-              child: const Text(
-                'Mentés',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -253,10 +241,20 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
             ),
             const SizedBox(height: 16),
             // Új időbejegyzés hozzáadása gomb
-            OutlinedButton.icon(
-              onPressed: _addTimeEntry,
-              icon: const Icon(Icons.add),
-              label: const Text('Időbejegyzés hozzáadása'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _addTimeEntry,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Időbejegyzés hozzáadása'),
+                ),
+                Spacer(),
+                FilledButton(
+                  onPressed: _saveWorkLog,
+                  child: const Text('Mentés'),
+                ),
+              ],
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class ProjectDetailsContactDetails extends StatelessWidget {
@@ -41,9 +42,10 @@ class ProjectDetailsContactDetails extends StatelessWidget {
                 maxLines: 1,
               ),
               onPressed: () {
-                launchUrlString(
-                  'google.navigation:q=${Uri.encodeComponent(projectLocation)}&mode=d',
+                final uri = Uri.parse(
+                  'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(projectLocation)}',
                 );
+                launchUrl(uri, mode: LaunchMode.externalApplication);
               },
               icon: Icon(Icons.directions),
             )

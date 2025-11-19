@@ -29,17 +29,18 @@ Widget buildProjectList(
     itemBuilder: (context, index) {
       final data = filteredDocs[index].data();
       final projectName = (data['projectName'] ?? '') as String;
-      final customerName = (data['customerName'] ?? '') as String;
       final projectLocation = (data['projectLocation'] ?? '') as String;
-      final projectType = (data['projectType'] ?? '') as String;
 
       return ListTile(
-        title: Text(projectName.isEmpty ? 'Névtelen projekt' : projectName, style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-          color: Theme.of(context).colorScheme.primary,
-          letterSpacing: 0,
-        ),),
+        title: Text(
+          projectName.isEmpty ? 'Névtelen projekt' : projectName,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Theme.of(context).colorScheme.primary,
+            letterSpacing: 0,
+          ),
+        ),
         subtitle: Text(projectLocation),
         onTap: () {
           Navigator.push(

@@ -10,6 +10,7 @@ class EditWorklogBottomSheet extends StatefulWidget {
   final DateTime? initialEndTime;
   final int initialBreakMinutes;
   final DateTime? initialDate;
+  final String? initialDescription;
 
   const EditWorklogBottomSheet({
     super.key,
@@ -19,6 +20,7 @@ class EditWorklogBottomSheet extends StatefulWidget {
     this.initialEndTime,
     this.initialBreakMinutes = 0,
     this.initialDate,
+    this.initialDescription,
   });
 
   @override
@@ -33,6 +35,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
   late TextEditingController _startTimeController;
   late TextEditingController _endTimeController;
   late TextEditingController _dateController;
+  late TextEditingController _descriptionController;
   bool _isSaving = false;
 
   @override
@@ -52,6 +55,9 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
       text: _formatTimeOnly(_selectedEndTime),
     );
     _dateController = TextEditingController(text: _formatDate(_selectedDate));
+    _descriptionController = TextEditingController(
+      text: widget.initialDescription,
+    );
   }
 
   @override
@@ -60,6 +66,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
     _startTimeController.dispose();
     _endTimeController.dispose();
     _dateController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -162,6 +169,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               _selectedDate.day,
             ),
             'updatedAt': FieldValue.serverTimestamp(),
+            'description': _descriptionController.text.trim(),
           });
 
       if (!mounted) return;
@@ -298,6 +306,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
+              onChanged: (_) => _saveChanges(),
             ),
             const SizedBox(height: 16),
             // Dátum választó
@@ -310,6 +319,17 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                 suffixIcon: Icon(Icons.calendar_today),
               ),
               onTap: _selectDate,
+            ),
+            const SizedBox(height: 16),
+            // Leírás mező
+            TextFormField(
+              maxLines: 2,
+              controller: _descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Leírás',
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.sticky_note_2_outlined),
+              ),
             ),
             const SizedBox(height: 24),
             // Mentés gomb

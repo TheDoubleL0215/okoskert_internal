@@ -17,8 +17,8 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
     with SingleTickerProviderStateMixin {
   int selectedFilterIndex = 0;
   late TabController _tabController;
-  final GlobalKey<ExpandableFabState> _expandableFabKey = GlobalKey<ExpandableFabState>();
-
+  final GlobalKey<ExpandableFabState> _expandableFabKey =
+      GlobalKey<ExpandableFabState>();
 
   final List<String> filterOptions = [
     "Betűrend",
@@ -39,7 +39,6 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
     _tabController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -142,53 +141,53 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
         ),
       ),
       floatingActionButtonLocation: ExpandableFab.location,
-      floatingActionButton:ExpandableFab(
-          key: _expandableFabKey,
-          type: ExpandableFabType.up,
-          childrenAnimation: ExpandableFabAnimation.none,
-          distance: 70,
-          overlayStyle: ExpandableFabOverlayStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-          ),
-          children: [
-            Row(
-              children: [
-                FloatingActionButton.extended(
-                  label: Text('Munkagépek kezelése'),
-                  heroTag: null,
-                  icon: Icon(Icons.av_timer),
-                  onPressed: () {
-                    _expandableFabKey.currentState?.close();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MachineHoursScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                FloatingActionButton.extended(
-                  label: Text('Új projekt létrehozása'),
-                  heroTag: null,
-                  onPressed: () {
-                    _expandableFabKey.currentState?.close();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateProjectScreen(),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.add),
-                ),
-              ],
-            ),
-          ],
+      floatingActionButton: ExpandableFab(
+        key: _expandableFabKey,
+        type: ExpandableFabType.up,
+        childrenAnimation: ExpandableFabAnimation.none,
+        distance: 70,
+        overlayStyle: ExpandableFabOverlayStyle(
+          color: Colors.white.withValues(alpha: 0.7),
         ),
+        children: [
+          Row(
+            children: [
+              FloatingActionButton.extended(
+                label: Text('Munkagépek kezelése'),
+                heroTag: null,
+                icon: Icon(Icons.av_timer),
+                onPressed: () {
+                  _expandableFabKey.currentState?.close();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MachineHoursScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              FloatingActionButton.extended(
+                label: Text('Új projekt létrehozása'),
+                heroTag: null,
+                onPressed: () {
+                  _expandableFabKey.currentState?.close();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CreateProjectScreen(),
+                    ),
+                  );
+                },
+                icon: Icon(Icons.add),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

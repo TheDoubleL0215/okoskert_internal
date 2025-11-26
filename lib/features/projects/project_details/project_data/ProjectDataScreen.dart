@@ -177,6 +177,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
                 final endTime = data['endTime'] as Timestamp?;
                 final breakMinutes = data['breakMinutes'] as int? ?? 0;
                 final date = data['date'] as Timestamp?;
+                final description = data['description'] as String? ?? '';
 
                 return Column(
                   children: [
@@ -196,6 +197,22 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
                               'Szünet: $breakMinutes perc',
                               style: const TextStyle(fontSize: 12),
                             ),
+                          if (description.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                              ),
+                              child: Row(
+                                spacing: 4,
+                                children: [
+                                  Icon(Icons.sticky_note_2_outlined, size: 16),
+                                  Text(
+                                    description,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                       onTap:
@@ -206,6 +223,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
                             endTime?.toDate(),
                             breakMinutes,
                             date?.toDate(),
+                            description,
                           ),
                     ),
                     const Divider(),
@@ -235,6 +253,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
     DateTime? initialEndTime,
     int initialBreakMinutes,
     DateTime? initialDate,
+    String? initialDescription,
   ) {
     showModalBottomSheet(
       context: context,
@@ -247,6 +266,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
             initialEndTime: initialEndTime,
             initialBreakMinutes: initialBreakMinutes,
             initialDate: initialDate,
+            initialDescription: initialDescription,
           ),
     );
   }

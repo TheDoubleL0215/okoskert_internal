@@ -126,6 +126,7 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
         final startTimeString = entry['startTime'] as String;
         final endTimeString = entry['endTime'] as String;
         final breakMinutes = entry['breakMinutes'] as int? ?? 0;
+        final description = entry['description'] as String? ?? '';
 
         // Parse-oljuk az időket és kombináljuk a dátummal
         final startDateTime = _parseTimeString(startTimeString, _selectedDate);
@@ -162,6 +163,7 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
             _selectedDate.day,
           ), // Dátum is timestamp-ként mentve (éjfél)
           'createdAt': FieldValue.serverTimestamp(), // Létrehozás ideje
+          'description': description,
         };
 
         batch.set(docRef, workLogData);

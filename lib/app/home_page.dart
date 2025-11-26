@@ -18,7 +18,7 @@ class _HomePageState extends State<HomePage> {
       body:
           <Widget>[
             Projectscollectorscreen(),
-            Scaffold(body: Center(child: Text("Naptár"))),
+            Center(child: Text("Naptár")),
             AdminPage(),
           ][currentPageIndex],
 

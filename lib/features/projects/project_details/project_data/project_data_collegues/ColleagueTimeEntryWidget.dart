@@ -21,6 +21,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
   late final TextEditingController _breakMinutesController;
   late final TextEditingController _startTimeController;
   late final TextEditingController _endTimeController;
+  late final TextEditingController _descriptionController;
 
   @override
   void initState() {
@@ -28,6 +29,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
     _startTimeController = TextEditingController();
     _endTimeController = TextEditingController();
     _breakMinutesController = TextEditingController();
+    _descriptionController = TextEditingController();
     _loadEmployees();
   }
 
@@ -37,6 +39,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
     _startTimeController.dispose();
     _endTimeController.dispose();
     _breakMinutesController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -112,6 +115,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
             ? '0'
             : _breakMinutesController.text.trim(),
       ),
+      'description': _descriptionController.text.trim(),
     };
   }
 
@@ -194,6 +198,17 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+            onChanged: (_) => _notifyChanged(),
+          ),
+          const SizedBox(height: 16),
+          // Leírás mező
+          TextFormField(
+            maxLines: 2,
+            controller: _descriptionController,
+            decoration: const InputDecoration(
+              labelText: 'Leírás',
+              border: OutlineInputBorder(),
+            ),
             onChanged: (_) => _notifyChanged(),
           ),
         ],

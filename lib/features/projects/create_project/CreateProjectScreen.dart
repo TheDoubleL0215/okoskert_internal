@@ -2,9 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:okoskert_internal/data/services/project_types_query.dart';
+import 'package:okoskert_internal/data/services/get_project_by_id.dart';
 
 class CreateProjectScreen extends StatefulWidget {
-  const CreateProjectScreen({super.key});
+  final String? projectId;
+
+  const CreateProjectScreen({super.key, this.projectId});
 
   @override
   State<CreateProjectScreen> createState() => _CreateProjectScreenState();
@@ -31,7 +34,18 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   @override
   void initState() {
     super.initState();
-    _loadWorkTypes();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    // First load work types, then load project data if needed
+    await _loadWorkTypes();
+    if (widget.projectId != null) {
+      await _loadProjectData();
+    }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadWorkTypes() async {
@@ -39,11 +53,72 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       final types = await ProjectTypeService.getWorkTypesOnce();
       setState(() {
         _projectTypes = types;
-        _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _error = 'Hiba történt az adatok betöltésekor: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadProjectData() async {
+    if (widget.projectId == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final projectData = await ProjectService.getProjectById(
+        widget.projectId!,
+      );
+      if (projectData == null) {
+        setState(() {
+          _error = 'A projekt nem található';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Fill controllers with project data
+      _nameController.text = projectData['projectName'] ?? '';
+      _customerNameController.text = projectData['customerName'] ?? '';
+
+      // Handle phone number - remove +36 prefix if present
+      String phone = projectData['customerPhone'] ?? '';
+      if (phone.startsWith('+36')) {
+        phone = phone.substring(3);
+      }
+      _customerPhoneController.text = phone;
+
+      _customerEmailController.text = projectData['customerEmail'] ?? '';
+      _locationController.text = projectData['projectLocation'] ?? '';
+      _descriptionController.text = projectData['projectDescription'] ?? '';
+
+      // Set maintenance status
+      final status = projectData['projectStatus'] as String?;
+      _isMaintenance = status == 'maintenance';
+
+      // Find and set project type ID (now _projectTypes should be loaded)
+      final projectTypeName = projectData['projectType'] as String?;
+      if (projectTypeName != null && _projectTypes.isNotEmpty) {
+        final type = _projectTypes.firstWhere(
+          (type) => type['name'] == projectTypeName,
+          orElse: () => <String, dynamic>{},
+        );
+        if (type.isNotEmpty) {
+          _selectedProjectTypeId = type['id'] as String?;
+        }
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Hiba történt a projekt betöltésekor: $e';
         _isLoading = false;
       });
     }
@@ -62,12 +137,16 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditMode = widget.projectId != null;
+    final appBarTitle =
+        isEditMode ? 'Projekt szerkesztése' : 'Új projekt létrehozása';
+
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Új projekt létrehozása',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            appBarTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -76,9 +155,9 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Új projekt létrehozása',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          appBarTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           Padding(
@@ -287,11 +366,24 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
     debugPrint(jsonEncode(data));
     try {
-      await FirebaseFirestore.instance.collection('projects').add(data);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Projekt sikeresen elmentve')),
-      );
+      if (widget.projectId != null) {
+        // Update existing project
+        await FirebaseFirestore.instance
+            .collection('projects')
+            .doc(widget.projectId)
+            .update(data);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Projekt sikeresen frissítve')),
+        );
+      } else {
+        // Create new project
+        await FirebaseFirestore.instance.collection('projects').add(data);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Projekt sikeresen elmentve')),
+        );
+      }
       Navigator.pop(context);
     } catch (error) {
       if (!mounted) return;

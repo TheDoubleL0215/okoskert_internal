@@ -1,8 +1,4 @@
-library insta_image_viewer;
-
 import 'dart:math';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 
 class AddWorkHoursBottomSheet extends StatefulWidget {
   final String machineId;
@@ -78,7 +79,10 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
   Future<void> _loadProjects() async {
     try {
       final snapshot =
-          await FirebaseFirestore.instance.collection('projects').get();
+          await FirebaseFirestore.instance
+              .collection('projects')
+              .where('teamId', isEqualTo: await UserService.getTeamId())
+              .get();
 
       if (mounted) {
         setState(() {
@@ -145,6 +149,7 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
       final newHours = double.tryParse(_newHoursController.text.trim()) ?? 0.0;
 
       final workHoursData = {
+        'teamId': await UserService.getTeamId(),
         'date': Timestamp.fromDate(_selectedDate),
         'previousHours': _currentWorkHours,
         'newHours': newHours,

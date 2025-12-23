@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
+import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/machine_hours/MachineHoursScreen.dart';
 import 'package:okoskert_internal/features/projects/create_project/CreateProjectScreen.dart';
 import 'package:okoskert_internal/features/projects/ui/ProjectTile.dart';
@@ -85,6 +86,7 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
               child: Column(
                 children: [
                   TabBar(
+                    dividerColor: Colors.transparent,
                     controller: _tabController,
                     tabs: [
                       Tab(text: "Folyamatban lévő projektek"),
@@ -93,25 +95,23 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                     ],
                   ),
                   Expanded(
-                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      stream:
-                          FirebaseFirestore.instance
-                              .collection('projects')
-                              .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
+                    child: FutureBuilder<String?>(
+                      future: UserService.getTeamId(),
+                      builder: (context, teamIdSnapshot) {
+                        if (teamIdSnapshot.connectionState ==
                             ConnectionState.waiting) {
                           return const Center(
                             child: CircularProgressIndicator(),
                           );
                         }
 
-                        if (snapshot.hasError) {
+                        final teamId = teamIdSnapshot.data;
+                        if (teamId == null || teamId.isEmpty) {
                           return Center(
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
-                                'Hiba történt a projektek betöltésekor: ${snapshot.error}',
+                                'Hiba: nem található teamId',
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.error,
                                 ),
@@ -121,15 +121,49 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                           );
                         }
 
-                        final allDocs = snapshot.data?.docs ?? [];
+                        return StreamBuilder<
+                          QuerySnapshot<Map<String, dynamic>>
+                        >(
+                          stream:
+                              FirebaseFirestore.instance
+                                  .collection('projects')
+                                  .where('teamId', isEqualTo: teamId)
+                                  .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
 
-                        return TabBarView(
-                          controller: _tabController,
-                          children: [
-                            buildProjectList(allDocs, "ongoing"),
-                            buildProjectList(allDocs, "done"),
-                            buildProjectList(allDocs, "maintenance"),
-                          ],
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Text(
+                                    'Hiba történt a projektek betöltésekor: ${snapshot.error}',
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.error,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final allDocs = snapshot.data?.docs ?? [];
+
+                            return TabBarView(
+                              controller: _tabController,
+                              children: [
+                                buildProjectList(allDocs, "ongoing"),
+                                buildProjectList(allDocs, "done"),
+                                buildProjectList(allDocs, "maintenance"),
+                              ],
+                            );
+                          },
                         );
                       },
                     ),
@@ -141,52 +175,60 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
         ),
       ),
       floatingActionButtonLocation: ExpandableFab.location,
-      floatingActionButton: ExpandableFab(
-        key: _expandableFabKey,
-        type: ExpandableFabType.up,
-        childrenAnimation: ExpandableFabAnimation.none,
-        distance: 70,
-        overlayStyle: ExpandableFabOverlayStyle(
-          color: Colors.white.withValues(alpha: 0.7),
-        ),
-        children: [
-          Row(
+      floatingActionButton: FutureBuilder<int?>(
+        future: UserService.getRole(),
+        builder: (context, roleSnapshot) {
+          final role = roleSnapshot.data;
+
+          return ExpandableFab(
+            key: _expandableFabKey,
+            type: ExpandableFabType.up,
+            childrenAnimation: ExpandableFabAnimation.none,
+            distance: 70,
+            overlayStyle: ExpandableFabOverlayStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
             children: [
-              FloatingActionButton.extended(
-                label: Text('Munkagépek kezelése'),
-                heroTag: null,
-                icon: Icon(Icons.av_timer),
-                onPressed: () {
-                  _expandableFabKey.currentState?.close();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MachineHoursScreen(),
-                    ),
-                  );
-                },
+              Row(
+                children: [
+                  FloatingActionButton.extended(
+                    label: Text('Munkagépek kezelése'),
+                    heroTag: null,
+                    icon: Icon(Icons.av_timer),
+                    onPressed: () {
+                      _expandableFabKey.currentState?.close();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MachineHoursScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
-          Row(
-            children: [
-              FloatingActionButton.extended(
-                label: Text('Új projekt létrehozása'),
-                heroTag: null,
-                onPressed: () {
-                  _expandableFabKey.currentState?.close();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CreateProjectScreen(),
+              if (role == 1)
+                Row(
+                  children: [
+                    FloatingActionButton.extended(
+                      label: Text('Új projekt létrehozása'),
+                      heroTag: null,
+                      onPressed: () {
+                        _expandableFabKey.currentState?.close();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateProjectScreen(),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.add),
                     ),
-                  );
-                },
-                icon: Icon(Icons.add),
-              ),
+                  ],
+                ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

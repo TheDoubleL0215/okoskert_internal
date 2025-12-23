@@ -23,9 +23,9 @@ Widget buildProjectList(
   }
 
   return ListView.separated(
-    padding: const EdgeInsets.all(8),
+    padding: const EdgeInsets.symmetric(vertical: 8),
     itemCount: filteredDocs.length,
-    separatorBuilder: (_, __) => const SizedBox(height: 8),
+    separatorBuilder: (_, __) => const Divider(),
     itemBuilder: (context, index) {
       final data = filteredDocs[index].data();
       final projectName = (data['projectName'] ?? '') as String;

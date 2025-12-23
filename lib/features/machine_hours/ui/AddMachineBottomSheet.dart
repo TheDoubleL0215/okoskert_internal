@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 
 class AddMachineBottomSheet extends StatefulWidget {
   const AddMachineBottomSheet({super.key});
@@ -35,6 +36,7 @@ class _AddMachineBottomSheetState extends State<AddMachineBottomSheet> {
       final hours = double.tryParse(_hoursController.text.trim()) ?? 0.0;
 
       await FirebaseFirestore.instance.collection('machines').add({
+        'teamId': await UserService.getTeamId(),
         'name': name,
         'hours': hours,
         'createdAt': FieldValue.serverTimestamp(),

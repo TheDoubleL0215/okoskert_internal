@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/data/services/get_worklog_summary.dart';
 import 'package:okoskert_internal/features/projects/create_project/CreateProjectScreen.dart';
 import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsContactDetails.dart';
@@ -33,18 +34,28 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         actions: [
-          TextButton(
-            child: const Text('Szerkesztés'),
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          CreateProjectScreen(projectId: widget.projectId),
-                ),
-              );
-              // No need to refresh manually — StreamBuilder handles it.
+          FutureBuilder<int?>(
+            future: UserService.getRole(),
+            builder: (context, roleSnapshot) {
+              final role = roleSnapshot.data;
+              if (role == 1) {
+                return TextButton(
+                  child: const Text('Szerkesztés'),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => CreateProjectScreen(
+                              projectId: widget.projectId,
+                            ),
+                      ),
+                    );
+                    // No need to refresh manually — StreamBuilder handles it.
+                  },
+                );
+              }
+              return const SizedBox.shrink();
             },
           ),
         ],

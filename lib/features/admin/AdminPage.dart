@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:okoskert_internal/features/admin/join_requests_page.dart';
 import 'package:okoskert_internal/features/admin/work_types_page.dart';
 import 'package:okoskert_internal/features/admin/colleagues_page.dart';
@@ -19,7 +20,12 @@ class AdminPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin')),
+      appBar: AppBar(
+        title: const Text(
+          'Admin',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream:
             FirebaseFirestore.instance
@@ -62,6 +68,11 @@ class AdminPage extends StatelessWidget {
               }
 
               final workspaceDoc = workspaceSnapshot.data!.docs.first;
+              final workspaceData = workspaceDoc.data();
+              final workspaceName =
+                  workspaceData['name'] as String? ?? 'Névtelen munkatér';
+              final workspaceTeamId =
+                  workspaceData['teamId'] as String? ?? teamId;
 
               // Lekérdezzük a joinRequests-et
               return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -79,7 +90,77 @@ class AdminPage extends StatelessWidget {
                   final hasPendingRequests = joinRequests.isNotEmpty;
 
                   return ListView(
+                    padding: const EdgeInsets.all(16),
                     children: [
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.business,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Munkatér információ',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _InfoRow(
+                                label: 'Név',
+                                value: workspaceName,
+                                icon: Icons.badge,
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _InfoRow(
+                                      label: 'Csapat azonosító',
+                                      value: workspaceTeamId,
+                                      icon: Icons.vpn_key,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    onPressed: () {
+                                      Clipboard.setData(
+                                        ClipboardData(text: workspaceTeamId),
+                                      );
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Csapat azonosító másolva',
+                                          ),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.copy),
+                                    tooltip: 'Másolás',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       if (hasPendingRequests)
                         AdminMenuTile(
                           icon: Icons.person_add,
@@ -136,6 +217,53 @@ class AdminPage extends StatelessWidget {
         icon: const Icon(Icons.logout),
         label: const Text('Kijelentkezés'),
       ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

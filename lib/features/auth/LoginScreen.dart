@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
               .set({
                 'name': _nameController.text.trim(),
                 'email': _emailController.text.trim(),
-                'teamId': workspaceQuery.docs.first.id,
+                'teamId': accessCode,
                 'createdAt': FieldValue.serverTimestamp(),
               });
           // Ha van egyező workspace, hozzáadjuk a joinRequest-et

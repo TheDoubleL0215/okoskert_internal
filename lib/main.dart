@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:okoskert_internal/app/home_page.dart';
@@ -102,24 +103,76 @@ class MainApp extends StatelessWidget {
               if (roleNumber == null || roleNumber == '') {
                 return Scaffold(
                   body: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        spacing: 16,
-                        children: [
-                          Text(
-                            'A munkatér létrehozója hamarosan elfogadja a kérelmed!',
-                            style: TextStyle(fontSize: 16),
-                            textAlign: TextAlign.center,
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              await FirebaseAuth.instance.signOut();
-                            },
-                            child: const Text('Kijelentkezés'),
-                          ),
-                        ],
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Card(
+                              elevation: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(32.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.pending_actions,
+                                      size: 64,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      'Várakozás a jóváhagyásra',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.headlineSmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'A munkatér létrehozója hamarosan elfogadja a kérelmed és hozzárendel egy szerepkört.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 32),
+                                    const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CupertinoActivityIndicator(
+                                        radius: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 32),
+                                    TextButton.icon(
+                                      onPressed: () async {
+                                        await FirebaseAuth.instance.signOut();
+                                      },
+                                      icon: const Icon(Icons.logout),
+                                      label: const Text('Kijelentkezés'),
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size(
+                                          double.infinity,
+                                          48,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

@@ -100,13 +100,25 @@ class EditableChipFieldState extends State<EditableChipField> {
       return const <String>[];
     }
 
-    // Load work types from Firestore
+    // Load work types from Firestore workspace subcollection
     try {
-      final querySnapshot =
+      // First, find the workspace by teamId
+      final workspaceQuery =
           await FirebaseFirestore.instance
-              .collection('workTypes')
+              .collection('workspaces')
               .where('teamId', isEqualTo: _teamId)
+              .limit(1)
               .get();
+
+      if (workspaceQuery.docs.isEmpty) {
+        return const <String>[];
+      }
+
+      final workspaceDoc = workspaceQuery.docs.first;
+
+      // Then, get workTypes from the workspace subcollection
+      final querySnapshot =
+          await workspaceDoc.reference.collection('workTypes').get();
 
       final workTypes =
           querySnapshot.docs

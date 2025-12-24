@@ -191,6 +191,7 @@ class AdminPage extends StatelessWidget {
                         },
                       ),
                       AdminMenuTile(
+                        enabled: false,
                         icon: Icons.people,
                         title: 'Munkatársak',
                         onTap: () {

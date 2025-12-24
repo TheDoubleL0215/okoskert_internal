@@ -97,14 +97,47 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
     // Validáció: ellenőrizzük, hogy minden bejegyzés teljes-e
     for (var i = 0; i < _timeEntries.length; i++) {
       final entry = _timeEntries[i];
-      if (entry['employeeId'] == null ||
-          entry['startTime'] == null ||
-          entry['endTime'] == null) {
+
+      final startTimeString = entry['startTime'] as String?;
+      final endTimeString = entry['endTime'] as String?;
+      final breakMinutes = entry['breakMinutes'] as int? ?? 0;
+
+      if (entry['employeeId'] == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'A ${i + 1}. időbejegyzés nem teljes. Kérjük, töltse ki az összes mezőt.',
+              'A ${i + 1}. időbejegyzésben ninncs kiválasztott dolgozó!',
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (startTimeString == null || endTimeString == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'A ${i + 1}. időbejegyzésben nincs kiválasztva kezdés és/vagy végidő!',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Ellenőrizzük, ha a szünet hosszabb, mint a munkaidő
+      final startDateTime = _parseTimeString(startTimeString, _selectedDate);
+      final endDateTime = _parseTimeString(endTimeString, _selectedDate);
+
+      final workDurationMinutes =
+          endDateTime.difference(startDateTime).inMinutes;
+      if (breakMinutes > workDurationMinutes) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'A ${i + 1}. időbejegyzésnél a szünet hosszabb, mint a ledolgozott idő!',
             ),
           ),
         );
@@ -222,8 +255,24 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
             ...List.generate(
               _timeEntries.length,
               (index) => Card(
+                margin: const EdgeInsets.only(bottom: 16),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      child: Text(
+                        '${index + 1}. időbejegyzés',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
                     ColleagueTimeEntryWidget(
                       onChanged: (data) => _onTimeEntryChanged(index, data),
                     ),

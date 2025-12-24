@@ -307,6 +307,47 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       return;
     }
 
+    // Find the workspace and create missing work types
+    try {
+      final workspaceQuery =
+          await FirebaseFirestore.instance
+              .collection('workspaces')
+              .where('teamId', isEqualTo: teamId)
+              .limit(1)
+              .get();
+
+      if (workspaceQuery.docs.isNotEmpty) {
+        final workspaceDoc = workspaceQuery.docs.first;
+
+        // Get existing work types from the workspace subcollection
+        final existingWorkTypesSnapshot =
+            await workspaceDoc.reference.collection('workTypes').get();
+
+        final existingWorkTypeNames =
+            existingWorkTypesSnapshot.docs
+                .map((doc) => doc.data()['name'] as String? ?? '')
+                .where((name) => name.isNotEmpty)
+                .toSet();
+
+        // Find work types that don't exist yet
+        final newWorkTypes =
+            _selectedProjectTypes
+                .where((type) => !existingWorkTypeNames.contains(type))
+                .toList();
+
+        // Create missing work types
+        for (final workTypeName in newWorkTypes) {
+          await workspaceDoc.reference.collection('workTypes').add({
+            'name': workTypeName,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    } catch (error) {
+      // Log error but don't block project saving
+      debugPrint('Hiba a munkatípusok létrehozásakor: $error');
+    }
+
     final Map<String, dynamic> data = {
       'teamId': teamId,
       'projectName': _nameController.text.trim(),

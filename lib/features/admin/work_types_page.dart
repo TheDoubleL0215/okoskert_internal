@@ -32,15 +32,14 @@ class _WorkTypesPageState extends State<WorkTypesPage> {
     super.dispose();
   }
 
-  Future<void> _addWorkType() async {
-    if (_newWorkTypeController.text.trim().isEmpty || _teamId == null) {
+  Future<void> _addWorkType(DocumentReference workspaceRef) async {
+    if (_newWorkTypeController.text.trim().isEmpty) {
       return;
     }
 
     try {
-      await FirebaseFirestore.instance.collection('workTypes').add({
+      await workspaceRef.collection('workTypes').add({
         'name': _newWorkTypeController.text.trim(),
-        'teamId': _teamId,
         'createdAt': FieldValue.serverTimestamp(),
       });
       _newWorkTypeController.clear();
@@ -61,101 +60,128 @@ class _WorkTypesPageState extends State<WorkTypesPage> {
       );
     }
 
-    // Lekérdezzük a workTypes-et közvetlenül a root szintről, teamId alapján
+    // Keresünk egy workspace-t a teamId alapján
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream:
           FirebaseFirestore.instance
-              .collection('workTypes')
+              .collection('workspaces')
               .where('teamId', isEqualTo: _teamId)
+              .limit(1)
               .snapshots(),
-      builder: (context, workTypesSnapshot) {
-        return Scaffold(
-          appBar: AppBar(title: const Text('Munkatípusok kezelése')),
-          body: GestureDetector(
-            onTap: () {
-              FocusScope.of(context).unfocus();
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  ListTile(
-                    title: TextField(
-                      controller: _newWorkTypeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Új munkatípus',
-                      ),
-                      textCapitalization: TextCapitalization.words,
-                      onSubmitted: (_) => _addWorkType(),
-                    ),
-                    trailing: IconButton(
-                      onPressed: _addWorkType,
-                      icon: const CircleAvatar(child: Icon(Icons.add)),
-                    ),
-                  ),
-                  const Divider(),
-                  Expanded(
-                    child:
-                        workTypesSnapshot.connectionState ==
-                                ConnectionState.waiting
-                            ? const Center(child: CircularProgressIndicator())
-                            : workTypesSnapshot.hasError
-                            ? Center(
-                              child: GestureDetector(
-                                onTap: () {
-                                  print(
-                                    'Hiba történt: ${workTypesSnapshot.error}',
-                                  );
-                                },
-                                child: Text(
-                                  'Hiba történt: ${workTypesSnapshot.error}',
-                                ),
-                              ),
-                            )
-                            : workTypesSnapshot.data?.docs.isEmpty ?? true
-                            ? const Center(
-                              child: Text('Nincsenek munkatípusok'),
-                            )
-                            : ListView.builder(
-                              itemCount:
-                                  workTypesSnapshot.data?.docs.length ?? 0,
-                              itemBuilder: (context, index) {
-                                final workType =
-                                    workTypesSnapshot.data!.docs[index];
-                                final workTypeData = workType.data();
-                                final name =
-                                    workTypeData['name'] as String? ?? '';
+      builder: (context, workspaceSnapshot) {
+        if (workspaceSnapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Munkatípusok kezelése')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
 
-                                return ListTile(
-                                  title: Text(name),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () async {
-                                      try {
-                                        await workType.reference.delete();
-                                      } catch (error) {
-                                        if (!mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Hiba történt: $error',
-                                            ),
-                                          ),
-                                        );
-                                      }
+        if (!workspaceSnapshot.hasData ||
+            workspaceSnapshot.data!.docs.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Munkatípusok kezelése')),
+            body: const Center(child: Text('Munkatér nem található')),
+          );
+        }
+
+        final workspaceDoc = workspaceSnapshot.data!.docs.first;
+
+        // Lekérdezzük a workTypes-et a workspace subcollection-ből
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: workspaceDoc.reference.collection('workTypes').snapshots(),
+          builder: (context, workTypesSnapshot) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Munkatípusok kezelése')),
+              body: GestureDetector(
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: TextField(
+                          controller: _newWorkTypeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Új munkatípus',
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          onSubmitted:
+                              (_) => _addWorkType(workspaceDoc.reference),
+                        ),
+                        trailing: IconButton(
+                          onPressed: () => _addWorkType(workspaceDoc.reference),
+                          icon: const CircleAvatar(child: Icon(Icons.add)),
+                        ),
+                      ),
+                      const Divider(),
+                      Expanded(
+                        child:
+                            workTypesSnapshot.connectionState ==
+                                    ConnectionState.waiting
+                                ? const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                                : workTypesSnapshot.hasError
+                                ? Center(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      print(
+                                        'Hiba történt: ${workTypesSnapshot.error}',
+                                      );
                                     },
+                                    child: Text(
+                                      'Hiba történt: ${workTypesSnapshot.error}',
+                                    ),
                                   ),
-                                );
-                              },
-                            ),
+                                )
+                                : workTypesSnapshot.data?.docs.isEmpty ?? true
+                                ? const Center(
+                                  child: Text('Nincsenek munkatípusok'),
+                                )
+                                : ListView.builder(
+                                  itemCount:
+                                      workTypesSnapshot.data?.docs.length ?? 0,
+                                  itemBuilder: (context, index) {
+                                    final workType =
+                                        workTypesSnapshot.data!.docs[index];
+                                    final workTypeData = workType.data();
+                                    final name =
+                                        workTypeData['name'] as String? ?? '';
+
+                                    return ListTile(
+                                      title: Text(name),
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () async {
+                                          try {
+                                            await workType.reference.delete();
+                                          } catch (error) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Hiba történt: $error',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

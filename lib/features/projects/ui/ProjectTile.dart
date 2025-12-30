@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsScreen.dart';
+import 'package:okoskert_internal/features/projects/project_details/project_details_screen.dart';
 
 Widget buildProjectList(
   List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs,
@@ -16,7 +16,7 @@ Widget buildProjectList(
   if (filteredDocs.isEmpty) {
     return Center(
       child: Text(
-        'Nincs projekt ebben a szakaszban',
+        'Nincs projekt ebben a kategóriában',
         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
       ),
     );

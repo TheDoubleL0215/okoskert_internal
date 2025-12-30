@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
-import 'package:okoskert_internal/features/machine_hours/MachineDetailsScreen.dart';
-import 'package:okoskert_internal/features/machine_hours/ui/AddMachineBottomSheet.dart';
+import 'package:okoskert_internal/features/machine_hours/machine_details_screen.dart';
+import 'package:okoskert_internal/features/machine_hours/ui/add_machine_bottom_sheet.dart';
 
 class MachineHoursScreen extends StatefulWidget {
   const MachineHoursScreen({super.key});

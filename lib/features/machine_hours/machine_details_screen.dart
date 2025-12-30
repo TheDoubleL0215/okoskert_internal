@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:okoskert_internal/features/machine_hours/AddWorkingHoursBottomSheet.dart';
+import 'package:okoskert_internal/features/machine_hours/ui/add_working_hours_bottom_sheet.dart';
 
 class MachineDetailsScreen extends StatefulWidget {
   final String machineId;

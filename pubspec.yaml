@@ -1,7 +1,7 @@
 name: okoskert_internal
 description: "An internal app for Okoskert"
 publish_to: 'none'
-version: 0.2.2
+version: 0.3.0
 
 environment:
   sdk: ^3.7.2
@@ -23,6 +23,8 @@ dependencies:
   flutter_localization: ^0.3.3
   intl: ^0.20.2
   shared_preferences: ^2.5.4
+  lucide_icons_flutter: ^3.1.9
+  provider:
 
 dev_dependencies:
   flutter_test:

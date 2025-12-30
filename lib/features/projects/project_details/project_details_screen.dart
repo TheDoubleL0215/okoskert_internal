@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/data/services/get_worklog_summary.dart';
-import 'package:okoskert_internal/features/projects/create_project/CreateProjectScreen.dart';
-import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsContactDetails.dart';
-import 'package:okoskert_internal/features/projects/project_details/ProjectDetailsDescriptionAccordion.dart';
+import 'package:okoskert_internal/features/projects/create_project/create_project_screen.dart';
+import 'package:okoskert_internal/features/projects/project_details/contact_details_section.dart';
+import 'package:okoskert_internal/features/projects/project_details/description_accordion.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/ProjectDataScreen.dart';
 import 'package:okoskert_internal/features/projects/project_details/ui/ProjectStatusChip.dart';
 
@@ -165,7 +165,7 @@ class ProjectDetailsContent extends StatelessWidget {
                       projectData['customerEmail'] != null ||
                       projectData['projectLocation'] != null)
                     padding16(
-                      ProjectDetailsContactDetails(
+                      ContactDetailsSection(
                         customerPhone: projectData['customerPhone'],
                         customerEmail: projectData['customerEmail'],
                         projectLocation: projectData['projectLocation'],
@@ -177,7 +177,7 @@ class ProjectDetailsContent extends StatelessWidget {
                           .toString()
                           .trim()
                           .isNotEmpty)
-                    ProjectDetailsDescriptionAccordion(
+                    DescriptionAccordion(
                       projectDescription: projectData['projectDescription'],
                     ),
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
-import 'package:okoskert_internal/features/admin/AdminPage.dart';
-import 'package:okoskert_internal/features/projects/ProjectsCollectorScreen.dart';
-import 'package:okoskert_internal/features/calendar/CalendarScreen.dart';
-import 'package:okoskert_internal/app/profile_page.dart';
+import 'package:okoskert_internal/features/admin/admin_screen.dart';
+import 'package:okoskert_internal/features/projects/projects_collector_screen.dart';
+import 'package:okoskert_internal/features/calendar/calendar_screen.dart';
+import 'package:okoskert_internal/app/profile_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

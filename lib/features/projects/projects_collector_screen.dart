@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
-import 'package:okoskert_internal/features/machine_hours/MachineHoursScreen.dart';
-import 'package:okoskert_internal/features/projects/create_project/CreateProjectScreen.dart';
+import 'package:okoskert_internal/features/machine_hours/machine_hours_screen.dart';
+import 'package:okoskert_internal/features/projects/create_project/create_project_screen.dart';
+import 'package:okoskert_internal/features/projects/project_details/project_details_screen.dart';
 import 'package:okoskert_internal/features/projects/ui/ProjectTile.dart';
 
 class Projectscollectorscreen extends StatefulWidget {
@@ -16,18 +18,10 @@ class Projectscollectorscreen extends StatefulWidget {
 
 class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
     with SingleTickerProviderStateMixin {
-  int selectedFilterIndex = 0;
   late TabController _tabController;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _allProjects = [];
   final GlobalKey<ExpandableFabState> _expandableFabKey =
       GlobalKey<ExpandableFabState>();
-
-  final List<String> filterOptions = [
-    "Betűrend",
-    "Állapot",
-    "Utoljára frissítve",
-    "Munka típusa",
-    "Prioritás",
-  ];
 
   @override
   void initState() {
@@ -49,39 +43,64 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
         child: Column(
           spacing: 16,
           children: [
-            SearchBar(
-              backgroundColor: WidgetStateProperty.all(
+            SearchAnchor.bar(
+              barElevation: WidgetStateProperty.all(0),
+              barBackgroundColor: WidgetStateProperty.all(
                 Theme.of(context).colorScheme.secondaryContainer,
               ),
-              padding: WidgetStateProperty.all(
-                EdgeInsets.symmetric(horizontal: 16),
-              ),
-              leading: Icon(Icons.search),
-              hintText: "Keresés",
-              elevation: WidgetStateProperty.all(0),
-            ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                spacing: 8,
-                children:
-                    filterOptions.asMap().entries.map((entry) {
-                      int index = entry.key;
-                      String option = entry.value;
-                      return ChoiceChip(
-                        label: Text(option),
-                        selected: selectedFilterIndex == index,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              selectedFilterIndex = index;
-                            });
-                          }
-                        },
+              barHintText: "Keresés projektek között",
+              barLeading: const Icon(Icons.search),
+
+              suggestionsBuilder: (context, controller) {
+                final query = controller.text.toLowerCase();
+
+                if (query.isEmpty) {
+                  return const [];
+                }
+
+                debugPrint(
+                  '📦 Loaded ${_allProjects.length} projects from Firestore',
+                );
+
+                final results =
+                    _allProjects.where((doc) {
+                      final name =
+                          (doc.data()['projectName'] ?? '')
+                              .toString()
+                              .toLowerCase();
+                      return name.contains(query);
+                    }).toList();
+
+                return results.map((doc) {
+                  final data = doc.data();
+                  final projectId = doc.id;
+                  final projectName = data['projectName'] ?? 'Névtelen projekt';
+
+                  return ListTile(
+                    title: Text(projectName),
+                    leading: CircleAvatar(
+                      child: const Icon(Icons.construction_rounded),
+                    ),
+                    onTap: () {
+                      controller.closeView(null);
+                      controller.clear();
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => ProjectDetailsScreen(
+                                projectId: projectId,
+                                projectName: projectName,
+                              ),
+                        ),
                       );
-                    }).toList(),
-              ),
+                    },
+                  );
+                }).toList();
+              },
             ),
+
             Expanded(
               child: Column(
                 children: [
@@ -89,9 +108,9 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                     dividerColor: Colors.transparent,
                     controller: _tabController,
                     tabs: [
-                      Tab(text: "Folyamatban lévő projektek"),
-                      Tab(text: "Kész projektek"),
-                      Tab(text: "Karbantartás"),
+                      Tab(text: "Folyamatban", icon: Icon(LucideIcons.hammer)),
+                      Tab(text: "Kész", icon: Icon(LucideIcons.circleCheck)),
+                      Tab(text: "Karbantartás", icon: Icon(LucideIcons.wrench)),
                     ],
                   ),
                   Expanded(
@@ -154,6 +173,7 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                             }
 
                             final allDocs = snapshot.data?.docs ?? [];
+                            _allProjects = allDocs;
 
                             return TabBarView(
                               controller: _tabController,
@@ -186,7 +206,9 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
             childrenAnimation: ExpandableFabAnimation.none,
             distance: 70,
             overlayStyle: ExpandableFabOverlayStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow.withValues(alpha: 0.7),
             ),
             children: [
               Row(

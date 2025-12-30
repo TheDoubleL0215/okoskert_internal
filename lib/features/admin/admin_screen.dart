@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:okoskert_internal/app/settings_screen.dart';
 import 'package:okoskert_internal/features/admin/join_requests_page.dart';
 import 'package:okoskert_internal/features/admin/work_types_page.dart';
 import 'package:okoskert_internal/features/admin/colleagues_page.dart';
@@ -25,6 +26,17 @@ class AdminPage extends StatelessWidget {
           'Admin',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+            icon: const Icon(Icons.settings),
+          ),
+        ],
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream:

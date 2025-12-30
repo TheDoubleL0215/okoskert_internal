@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-class ProjectDetailsDescriptionAccordion extends StatelessWidget {
+class DescriptionAccordion extends StatelessWidget {
   final String projectDescription;
-  const ProjectDetailsDescriptionAccordion({
-    super.key,
-    required this.projectDescription,
-  });
+  const DescriptionAccordion({super.key, required this.projectDescription});
 
   @override
   Widget build(BuildContext context) {

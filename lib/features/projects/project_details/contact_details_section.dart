@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-class ProjectDetailsContactDetails extends StatelessWidget {
+class ContactDetailsSection extends StatelessWidget {
   final customerPhone;
   final customerEmail;
   final projectLocation;
-  const ProjectDetailsContactDetails({
+  const ContactDetailsSection({
     super.key,
     required this.customerPhone,
     required this.customerEmail,

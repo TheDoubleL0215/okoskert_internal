@@ -3,18 +3,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:okoskert_internal/app/home_page.dart';
+import 'package:okoskert_internal/app/home_screen.dart';
+import 'package:okoskert_internal/app/theme_provider.dart';
 import 'package:okoskert_internal/data/services/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:okoskert_internal/features/auth/LoginScreen.dart';
+import 'package:okoskert_internal/features/auth/login_screen.dart';
 import 'package:okoskert_internal/features/auth/create_new_workspace_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('hu_HU', null);
-  runApp(const MainApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: const MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
@@ -41,7 +48,9 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
     return MaterialApp(
+      themeMode: themeProvider.themeMode,
       builder:
           (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
@@ -52,6 +61,13 @@ class MainApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.lightGreen,
           brightness: Brightness.light,
+        ),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.lightGreen,
+          brightness: Brightness.dark,
         ),
         useMaterial3: true,
       ),

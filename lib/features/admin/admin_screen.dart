@@ -7,6 +7,7 @@ import 'package:okoskert_internal/features/admin/join_requests_page.dart';
 import 'package:okoskert_internal/features/admin/work_types_page.dart';
 import 'package:okoskert_internal/features/admin/colleagues_page.dart';
 import 'package:okoskert_internal/features/admin/admin_menu_tile.dart';
+import 'package:okoskert_internal/features/warehouse/warehouse_screen.dart';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
@@ -198,6 +199,18 @@ class AdminPage extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const WorkTypesPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      AdminMenuTile(
+                        icon: Icons.inventory_2,
+                        title: 'Alapanyagok kezelése',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const WarehouseScreen(),
                             ),
                           );
                         },

@@ -169,6 +169,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
             spacing: 16,
             children: [
               TextFormField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Projekt neve',
@@ -182,6 +183,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                 },
               ),
               TextFormField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _customerNameController,
                 decoration: const InputDecoration(
                   labelText: 'Megrendelő neve',
@@ -234,6 +236,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                 },
               ),
               TextFormField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _locationController,
                 decoration: const InputDecoration(
                   labelText: 'Helyszín',
@@ -242,6 +245,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                 keyboardType: TextInputType.streetAddress,
               ),
               TextFormField(
+                textCapitalization: TextCapitalization.sentences,
                 maxLines: 5,
                 controller: _descriptionController,
                 decoration: const InputDecoration(

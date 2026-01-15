@@ -44,6 +44,7 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
           spacing: 16,
           children: [
             SearchAnchor.bar(
+              onClose: () => FocusScope.of(context).unfocus(),
               barElevation: WidgetStateProperty.all(0),
               barBackgroundColor: WidgetStateProperty.all(
                 Theme.of(context).colorScheme.secondaryContainer,
@@ -64,11 +65,18 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
 
                 final results =
                     _allProjects.where((doc) {
+                      final data = doc.data();
                       final name =
-                          (doc.data()['projectName'] ?? '')
+                          (data['projectName'] ?? '').toString().toLowerCase();
+                      final customerName =
+                          (data['customerName'] ?? '').toString().toLowerCase();
+                      final projectLocation =
+                          (data['projectLocation'] ?? '')
                               .toString()
                               .toLowerCase();
-                      return name.contains(query);
+                      return name.contains(query) ||
+                          customerName.contains(query) ||
+                          projectLocation.contains(query);
                     }).toList();
 
                 return results.map((doc) {

@@ -7,6 +7,7 @@ import 'package:okoskert_internal/features/projects/project_details/contact_deta
 import 'package:okoskert_internal/features/projects/project_details/description_accordion.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/ProjectDataScreen.dart';
 import 'package:okoskert_internal/features/projects/project_details/ui/ProjectStatusChip.dart';
+import 'package:okoskert_internal/features/warehouse/ui/material_details_bottom_sheet.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
   final String projectId;
@@ -188,6 +189,23 @@ class ProjectDetailsContent extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
+                          'Alapanyagok',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        MaterialsSection(projectId: projectId),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  padding16(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
                           'Munkaórák összesítése',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.bold),
@@ -252,6 +270,176 @@ class ProjectDetailsContent extends StatelessWidget {
 // --- Small util widget ---
 Widget padding16(Widget child) =>
     Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: child);
+
+// --- Materials section ---
+class MaterialsSection extends StatelessWidget {
+  final String projectId;
+
+  const MaterialsSection({super.key, required this.projectId});
+
+  String _formatPrice(double price) {
+    final priceInt = price.toInt();
+    final priceStr = priceInt.toString();
+    final buffer = StringBuffer();
+
+    for (int i = 0; i < priceStr.length; i++) {
+      if (i > 0 && (priceStr.length - i) % 3 == 0) {
+        buffer.write(' ');
+      }
+      buffer.write(priceStr[i]);
+    }
+
+    return buffer.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: UserService.getTeamId(),
+      builder: (context, teamIdSnapshot) {
+        if (teamIdSnapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final teamId = teamIdSnapshot.data;
+        if (teamId == null || teamId.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Hiba: nem található teamId'),
+          );
+        }
+
+        // Projektek betöltése a projectsMap-hez
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream:
+              FirebaseFirestore.instance
+                  .collection('projects')
+                  .where('teamId', isEqualTo: teamId)
+                  .snapshots(),
+          builder: (context, projectsSnapshot) {
+            // Projektek Map-ben tárolása (ID -> név)
+            final projectsMap = <String, String>{};
+            if (projectsSnapshot.hasData) {
+              for (final doc in projectsSnapshot.data!.docs) {
+                final data = doc.data();
+                projectsMap[doc.id] =
+                    data['projectName'] as String? ?? 'Névtelen projekt';
+              }
+            }
+
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('materials')
+                      .where('teamId', isEqualTo: teamId)
+                      .where('projectId', isEqualTo: projectId)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Hiba történt az alapanyagok betöltésekor: ${snapshot.error}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  );
+                }
+
+                final materials = snapshot.data?.docs ?? [];
+
+                if (materials.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Még nincsenek alapanyagok hozzárendelve ehhez a projekthez',
+                    ),
+                  );
+                }
+
+                return Column(
+                  children:
+                      materials.map((material) {
+                        final data = material.data();
+                        final name =
+                            data['name'] as String? ?? 'Névtelen alapanyag';
+                        final quantity = data['quantity'] as num? ?? 0.0;
+                        final unit = data['unit'] as String? ?? '';
+                        final price = data['price'] as num?;
+                        final unitPrice = data['unitPrice'] as num?;
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            title: Text(
+                              name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Mennyiség: $quantity $unit'),
+                                if (unitPrice != null)
+                                  Text(
+                                    'Egységár: ${_formatPrice(unitPrice.toDouble())} HUF/$unit',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            trailing:
+                                price != null
+                                    ? Text(
+                                      '${_formatPrice(price.toDouble())} HUF',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                      ),
+                                    )
+                                    : null,
+                            isThreeLine: unitPrice != null,
+                            onTap: () {
+                              MaterialDetailsBottomSheet.show(
+                                context,
+                                material,
+                                projectsMap,
+                              );
+                            },
+                          ),
+                        );
+                      }).toList(),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
 
 // --- Worklog section stays untouched ---
 class WorklogSummarySection extends StatelessWidget {

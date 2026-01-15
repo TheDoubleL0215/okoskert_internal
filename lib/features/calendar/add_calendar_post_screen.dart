@@ -776,48 +776,55 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
               : 'Új bejegyzés hozzáadása',
         ),
       ),
-      body: Padding(
-        padding: EdgeInsets.only(left: 16, right: 16, top: 16),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  textCapitalization: TextCapitalization.sentences,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    hintText: 'Cím',
-                    border: InputBorder.none,
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: EdgeInsets.only(left: 16, right: 16, top: 16),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    textCapitalization: TextCapitalization.sentences,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: 'Cím',
+                      border: InputBorder.none,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Kérjük, adja meg a címet';
+                      }
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Kérjük, adja meg a címet';
-                    }
-                    return null;
-                  },
-                ),
-                const Divider(),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    hintText: 'Leírás',
-                    border: InputBorder.none,
+                  const Divider(),
+                  TextFormField(
+                    textCapitalization: TextCapitalization.sentences,
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      hintText: 'Leírás',
+                      border: InputBorder.none,
+                    ),
+                    maxLines: 4,
                   ),
-                  maxLines: 4,
-                ),
-                const Divider(),
-                _buildProjectSelector(),
-                const Divider(),
-                _buildSelectedEmployees(),
-                const Divider(),
-                _buildPrioritySelector(),
-              ],
+                  const Divider(),
+                  _buildProjectSelector(),
+                  const Divider(),
+                  _buildSelectedEmployees(),
+                  const Divider(),
+                  _buildPrioritySelector(),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:okoskert_internal/data/services/get_employees.dart';
+import 'package:okoskert_internal/core/utils/services/employee_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 
 class AddCalendarPostScreen extends StatefulWidget {

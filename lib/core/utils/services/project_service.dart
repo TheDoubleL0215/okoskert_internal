@@ -25,4 +25,19 @@ class ProjectService {
       rethrow;
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getProjectNames(
+    List<String> projectIds,
+  ) async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('projects')
+              .where(FieldPath.documentId, whereIn: projectIds)
+              .get();
+      return snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

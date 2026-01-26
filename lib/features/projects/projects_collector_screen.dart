@@ -242,8 +242,9 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                                 final updatedAtB =
                                     dataB['updatedAt'] as Timestamp?;
 
-                                if (updatedAtA == null && updatedAtB == null)
+                                if (updatedAtA == null && updatedAtB == null) {
                                   return 0;
+                                }
                                 if (updatedAtA == null) return 1;
                                 if (updatedAtB == null) return -1;
 

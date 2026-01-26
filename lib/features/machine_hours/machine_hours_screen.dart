@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:okoskert_internal/features/machine_hours/create_machine_screen.dart';
 import 'package:okoskert_internal/features/machine_hours/machine_details_screen.dart';
-import 'package:okoskert_internal/features/machine_hours/ui/add_machine_bottom_sheet.dart';
 
 class MachineHoursScreen extends StatefulWidget {
   const MachineHoursScreen({super.key});
@@ -12,14 +12,6 @@ class MachineHoursScreen extends StatefulWidget {
 }
 
 class _MachineHoursScreenState extends State<MachineHoursScreen> {
-  void _showAddMachineModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => const AddMachineBottomSheet(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,7 +80,14 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
                         style: TextStyle(fontSize: 16),
                       ),
                       TextButton.icon(
-                        onPressed: _showAddMachineModal,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreateMachineScreen(),
+                            ),
+                          );
+                        },
                         icon: const Icon(Icons.add),
                         label: const Text(
                           'Új gép hozzáadása',
@@ -106,7 +105,14 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     FilledButton.tonalIcon(
-                      onPressed: _showAddMachineModal,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateMachineScreen(),
+                          ),
+                        );
+                      },
                       icon: const Icon(Icons.add),
                       label: const Text(
                         'Új gép hozzáadása',
@@ -121,7 +127,6 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
                           final doc = machineDocs[index];
                           final data = doc.data();
                           final name = data['name'] as String? ?? 'Ismeretlen';
-                          final hours = data['hours'] as num? ?? 0;
 
                           return ListTile(
                             contentPadding: const EdgeInsets.symmetric(
@@ -143,15 +148,7 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
                                 ),
                               ],
                             ),
-                            trailing: Text(
-                              '$hours óra',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
+                            trailing: Icon(Icons.chevron_right),
                             onTap: () {
                               Navigator.push(
                                 context,

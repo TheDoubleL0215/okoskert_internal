@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:okoskert_internal/data/services/get_employees.dart';
+import 'package:okoskert_internal/core/utils/services/employee_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/calendar/add_calendar_post_screen.dart';
 import 'package:okoskert_internal/features/calendar/ui/event_details_bottom_sheet.dart';

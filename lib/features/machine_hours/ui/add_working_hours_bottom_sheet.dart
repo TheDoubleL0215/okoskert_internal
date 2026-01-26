@@ -51,9 +51,7 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
 
       if (doc.exists) {
         final data = doc.data();
-        // Először próbáljuk a workHours mezőt, ha nincs, akkor a hours mezőt
-        _currentWorkHours =
-            data?['workHours'] as num? ?? data?['hours'] as num? ?? 0;
+        _currentWorkHours = data?['hours'] as num? ?? 0;
       }
       if (mounted) {
         _currentHoursController.text = _currentWorkHours.toString();
@@ -179,7 +177,6 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
           .collection('machines')
           .doc(widget.machineId)
           .update({
-            'workHours': newHours,
             'hours': newHours, // Kompatibilitás miatt is frissítjük
             'updatedAt': FieldValue.serverTimestamp(),
           });

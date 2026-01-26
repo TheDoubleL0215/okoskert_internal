@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:okoskert_internal/app/home_screen.dart';
 import 'package:okoskert_internal/app/theme_provider.dart';
-import 'package:okoskert_internal/data/services/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:okoskert_internal/features/auth/login_screen.dart';
 import 'package:okoskert_internal/features/auth/create_new_workspace_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toastification/toastification.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

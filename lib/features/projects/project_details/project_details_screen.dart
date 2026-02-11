@@ -224,28 +224,6 @@ class ProjectDetailsContent extends StatelessWidget {
           padding16(
             Column(
               children: [
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => ProjectDataScreen(
-                              projectId: projectId,
-                              projectName: projectName,
-                            ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text(
-                    'Adatok hozzáadása',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
                   onPressed: null,

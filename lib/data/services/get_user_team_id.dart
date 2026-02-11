@@ -46,6 +46,14 @@ class UserService {
     }
   }
 
+  static Future<String?> getUserId() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return null;
+    }
+    return user.uid;
+  }
+
   /// Lekérdezi a bejelentkezett felhasználó role-ját
   static Future<int?> getRole() async {
     try {

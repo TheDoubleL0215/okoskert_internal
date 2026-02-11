@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/core/utils/services/machine_work_hours_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 
 class CreateMachineScreen extends StatefulWidget {
@@ -52,23 +53,37 @@ class _CreateMachineScreenState extends State<CreateMachineScreen> {
                   maintenance['name']?.text.trim().isNotEmpty ?? false,
             )
             .map((maintenance) {
+              final maintenanceHours =
+                  double.tryParse(maintenance['hours']?.text.trim() ?? '0.0') ??
+                  0.0;
               return {
                 'name': maintenance['name']?.text.trim(),
-                'hours':
+                'interval':
                     double.tryParse(
                       maintenance['hours']?.text.trim() ?? '0.0',
                     ) ??
                     0.0,
+                "lastAt":
+                    hours <= 0
+                        ? 0
+                        : (hours / maintenanceHours).floor() * maintenanceHours,
               };
             })
             .toList();
+    maintenances.add({
+      "name": "TMK karbantartás",
+      "interval": tmkMaintenanceHours,
+      "lastAt":
+          hours <= 0
+              ? 0
+              : (hours / tmkMaintenanceHours).floor() * tmkMaintenanceHours,
+    });
     try {
       await FirebaseFirestore.instance.collection('machines').add({
         'teamId': await UserService.getTeamId(),
         'name': name,
         'hours': hours,
         'maintenances': maintenances,
-        'tmkMaintenanceHours': tmkMaintenanceHours,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });

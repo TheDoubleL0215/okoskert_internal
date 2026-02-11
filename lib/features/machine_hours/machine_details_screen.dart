@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:okoskert_internal/core/utils/services/machine_work_hours_service.dart';
 import 'package:okoskert_internal/core/utils/services/project_service.dart';
+import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/machine_hours/ui/add_working_hours_bottom_sheet.dart';
+import 'package:slide_to_act/slide_to_act.dart';
 
 class MachineDetailsScreen extends StatefulWidget {
   final String machineId;
@@ -48,12 +51,12 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          future:
+        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream:
               FirebaseFirestore.instance
                   .collection('machines')
                   .doc(widget.machineId)
-                  .get(),
+                  .snapshots(),
           builder: (context, machineSnapshot) {
             if (machineSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -93,6 +96,8 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                 {'name': 'TMK karbantartás', 'hours': tmkMaintenanceHours},
               ...(machineData['maintenances'] as List<dynamic>? ?? []),
             ];
+
+            final maintenancesDone = machineData['maintenanceLog'] ?? [];
 
             // Single StreamBuilder for workHoursLog - used for both header and list
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -145,6 +150,8 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                   if (allNewHours.isNotEmpty) {
                     currentHours = allNewHours.reduce((a, b) => a > b ? a : b);
                   }
+                } else {
+                  currentHours = machineData['hours'] as num? ?? 0;
                 }
 
                 return Column(
@@ -217,7 +224,10 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                               ...maintenances.map((m) {
                                 final maintenance = m as Map<String, dynamic>;
                                 final name = maintenance['name'] ?? 'Névtelen';
-                                final hours = maintenance['hours'] ?? 0;
+                                final interval = maintenance['interval'] ?? 0;
+                                final nextMaintenance =
+                                    maintenance['lastAt'] + interval;
+                                final isDue = currentHours >= nextMaintenance;
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 8.0),
                                   child: Row(
@@ -228,27 +238,76 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                                         name,
                                         style: const TextStyle(fontSize: 14),
                                       ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.primaryContainer,
-                                          borderRadius: BorderRadius.circular(
-                                            30,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "$hours óra",
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                          ),
-                                        ),
+                                      Row(
+                                        children: [
+                                          if (!isDue)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .primaryContainer,
+                                                borderRadius:
+                                                    BorderRadius.circular(30),
+                                              ),
+                                              child: Text(
+                                                "${(nextMaintenance - currentHours).toStringAsFixed(1)} óra",
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          if (isDue)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    ColorScheme.fromSeed(
+                                                      seedColor: Colors.amber,
+                                                      brightness:
+                                                          Brightness.light,
+                                                    ).primaryContainer,
+                                                borderRadius:
+                                                    BorderRadius.circular(30),
+                                              ),
+                                              child: InkWell(
+                                                onTap: () {
+                                                  _showAddMaintenanceModal(
+                                                    maintenance,
+                                                    widget.machineId,
+                                                    currentHours,
+                                                  );
+                                                },
+                                                child: Row(
+                                                  spacing: 8,
+                                                  children: [
+                                                    Icon(
+                                                      LucideIcons.wrench,
+                                                      size: 16,
+                                                    ),
+                                                    Text(
+                                                      "Karbantartásra vár",
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -300,6 +359,155 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
         label: const Text("Óraállás rögzítése"),
         icon: const Icon(LucideIcons.clockPlus),
       ),
+    );
+  }
+
+  void _showAddMaintenanceModal(
+    Map<String, dynamic> maintenance,
+    String machineId,
+    num hours,
+  ) {
+    DateTime selectedDate = DateTime.now();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  /// Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Karbantartás rögzítése",
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// Maintenance Name
+                  Text(
+                    maintenance['name'] ?? 'Nincs név',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  /// DATE PICKER FIELD
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+
+                      if (picked != null) {
+                        setState(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "${selectedDate.year}.${selectedDate.month.toString().padLeft(2, '0')}.${selectedDate.day.toString().padLeft(2, '0')}",
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const Icon(Icons.calendar_today),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  /// Slide Action
+                  SizedBox(
+                    width: double.infinity,
+                    child: SlideAction(
+                      onSubmit: () async {
+                        try {
+                          final userId = await UserService.getUserId();
+                          if (userId == null) {
+                            throw Exception(
+                              'Felhasználói azonosító nem található',
+                            );
+                          }
+                          await MachineWorkHoursService.logMaintenance(
+                            maintenance: maintenance,
+                            machineId: machineId,
+                            date: selectedDate,
+                            hours: hours,
+                            userId: userId,
+                          );
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Karbantartás sikeresen rögzítve'),
+                            ),
+                          );
+                        } catch (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Hiba történt a karbantartás mentésekor: $error',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      sliderRotate: false,
+                      outerColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        'Karbantartás rögzítése',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

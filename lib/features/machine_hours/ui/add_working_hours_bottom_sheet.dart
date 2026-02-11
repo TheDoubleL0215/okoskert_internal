@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/core/utils/services/machine_work_hours_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:slide_to_act/slide_to_act.dart';
 
 class AddWorkHoursBottomSheet extends StatefulWidget {
   final String machineId;
@@ -130,15 +132,6 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
-    // Validáció: ha projekt be van kapcsolva, akkor ki kell választani egy projektet
-    if (_isProjectEnabled && _selectedProjectId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Válassz ki egy projektet!')),
-      );
-      return;
-    }
-
     setState(() {
       _isSaving = true;
     });
@@ -146,40 +139,14 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
     try {
       final newHours = double.tryParse(_newHoursController.text.trim()) ?? 0.0;
 
-      final workHoursData = {
-        'teamId': await UserService.getTeamId(),
-        'date': Timestamp.fromDate(_selectedDate),
-        'previousHours': _currentWorkHours,
-        'newHours': newHours,
-        'machineId': widget.machineId,
-        'createdAt': FieldValue.serverTimestamp(),
-        if (_isProjectEnabled) 'assignedProjectId': _selectedProjectId,
-      };
-
-      // Mentés a workHoursLog kollekcióba
-      await FirebaseFirestore.instance
-          .collection('machines')
-          .doc(widget.machineId)
-          .collection('workHoursLog')
-          .add(workHoursData);
-
-      // Ha projekt ki van választva, mentjük a projekt machineWorklog kollekciójába is
-      if (_isProjectEnabled && _selectedProjectId != null) {
-        await FirebaseFirestore.instance
-            .collection('projects')
-            .doc(_selectedProjectId)
-            .collection('machineWorklog')
-            .add(workHoursData);
-      }
-
-      // Frissítjük a gép jelenlegi óraállását is
-      await FirebaseFirestore.instance
-          .collection('machines')
-          .doc(widget.machineId)
-          .update({
-            'hours': newHours, // Kompatibilitás miatt is frissítjük
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+      await MachineWorkHoursService.saveWorkHours(
+        machineId: widget.machineId,
+        newHours: newHours,
+        date: _selectedDate,
+        previousHours: _currentWorkHours,
+        projectEnabled: _isProjectEnabled,
+        assignedProjectId: _selectedProjectId,
+      );
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -269,6 +236,15 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
                 if (double.tryParse(value.trim()) == null) {
                   return 'Kérjük, érvényes számot adjon meg';
                 }
+                if (value.isNotEmpty &&
+                    double.tryParse(value.trim())! <= _currentWorkHours) {
+                  return 'Az új óraállás nem lehet kisebb, mint a jelenlegi óraállás';
+                }
+                if (value.isNotEmpty &&
+                    (double.tryParse(value.trim())! - _currentWorkHours).abs() >
+                        10) {
+                  return 'Az új óraállás nem lehet nagyobb, mint 10 óra';
+                }
                 return null;
               },
             ),
@@ -318,22 +294,19 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
               ),
             ],
             const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _isSaving || _isLoading ? null : _saveWorkHours,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            SizedBox(
+              width: double.infinity,
+              child: SlideAction(
+                sliderRotate: false,
+                outerColor: Theme.of(context).colorScheme.primary,
+                onSubmit: _saveWorkHours,
+                child: Text(
+                  'Mentés',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                ),
               ),
-              child:
-                  _isSaving
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Text(
-                        'Mentés',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
             ),
             const SizedBox(height: 16),
           ],

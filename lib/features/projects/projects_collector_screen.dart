@@ -61,11 +61,6 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
                 if (query.isEmpty) {
                   return const [];
                 }
-
-                debugPrint(
-                  '📦 Loaded ${_allProjects.length} projects from Firestore',
-                );
-
                 final results =
                     _allProjects.where((doc) {
                       final data = doc.data();

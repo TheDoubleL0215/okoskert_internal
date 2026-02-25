@@ -332,130 +332,145 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
             ],
           ),
           const SizedBox(height: 16),
-          if (widget.eventDate != null) ...[
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${widget.eventDate!.year}. ${widget.eventDate!.month.toString().padLeft(2, '0')}. ${widget.eventDate!.day.toString().padLeft(2, '0')}.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (widget.event['description'] != null &&
-              widget.event['description'].toString().isNotEmpty) ...[
-            Text(
-              'Leírás',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.event['description'] ?? '',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-          ],
-          if (widget.relevantEmployees.isNotEmpty) ...[
-            Text(
-              'Hozzárendelt munkatársak',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  widget.relevantEmployees.map((employee) {
-                    final employeeName =
-                        (employee['name'] as String? ?? 'Névtelen').trim();
-                    final firstLetter =
-                        employeeName.isNotEmpty
-                            ? employeeName[0].toUpperCase()
-                            : '?';
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.eventDate != null) ...[
+                    Row(
                       children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primaryContainer,
-                          child: Text(
-                            firstLetter,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
-                            ),
-                          ),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          employeeName,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          '${widget.eventDate!.year}. ${widget.eventDate!.month.toString().padLeft(2, '0')}. ${widget.eventDate!.day.toString().padLeft(2, '0')}.',
+                          style: Theme.of(context).textTheme.bodyLarge,
                         ),
                       ],
-                    );
-                  }).toList(),
-            ),
-            const SizedBox(height: 16),
-          ],
-          if (widget.relevantProjects.isNotEmpty) ...[
-            Text(
-              'Hozzárendelt projektek',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  widget.relevantProjects.map((project) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => ProjectDetailsScreen(
-                                  projectId: project['id'],
-                                  projectName: project['name'] as String,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (widget.event['description'] != null &&
+                      widget.event['description'].toString().isNotEmpty) ...[
+                    Text(
+                      'Leírás',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.event['description'] ?? '',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (widget.relevantEmployees.isNotEmpty) ...[
+                    Text(
+                      'Hozzárendelt munkatársak',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children:
+                          widget.relevantEmployees.map((employee) {
+                            final employeeName =
+                                (employee['name'] as String? ?? 'Névtelen')
+                                    .trim();
+                            final firstLetter =
+                                employeeName.isNotEmpty
+                                    ? employeeName[0].toUpperCase()
+                                    : '?';
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer,
+                                  child: Text(
+                                    firstLetter,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
                                 ),
-                          ),
-                        );
-                      },
-                      child: Chip(label: Text(project['name'] as String)),
-                    );
-                  }).toList(),
+                                const SizedBox(width: 8),
+                                Text(
+                                  employeeName,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (widget.relevantProjects.isNotEmpty) ...[
+                    Text(
+                      'Hozzárendelt projektek',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children:
+                          widget.relevantProjects.map((project) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => ProjectDetailsScreen(
+                                          projectId: project['id'],
+                                          projectName:
+                                              project['name'] as String,
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: Chip(
+                                label: Text(project['name'] as String),
+                              ),
+                            );
+                          }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (_subtasks.isNotEmpty) ...[
+                    Text(
+                      'Részfeladatok',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSubtasksList(context),
+                    const SizedBox(height: 16),
+                  ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-          ],
-          if (_subtasks.isNotEmpty) ...[
-            Text(
-              'Részfeladatok',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildSubtasksList(context),
-            const SizedBox(height: 16),
-          ],
+          ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,

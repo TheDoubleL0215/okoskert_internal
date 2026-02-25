@@ -22,32 +22,45 @@ class MaterialListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      child: ListTile(
-        leading: const CircleAvatar(child: Icon(LucideIcons.package)),
-        title: Text(
-          name,
-          maxLines: 1,
-          softWrap: false,
-          overflow: TextOverflow.fade,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Mennyiség: $quantity $unit'),
-            if (price != null) Text('Ár: ${_formatPrice(price!.toDouble())} HUF'),
-            if (projectName != null)
-              Text(
-                'Projekt: $projectName',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-          ],
-        ),
-        isThreeLine: true,
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            spacing: 16,
+            children: [
+              const CircleAvatar(child: Icon(LucideIcons.package)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.fade,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text('Mennyiség: $quantity $unit'),
+                  if (price != null)
+                    Text('Ár: ${_formatPrice(price!.toDouble())} HUF'),
+                  if (projectName != null)
+                    Text(
+                      'Projekt: $projectName',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

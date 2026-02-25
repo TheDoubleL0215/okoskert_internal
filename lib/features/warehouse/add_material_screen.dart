@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:okoskert_internal/features/warehouse/add_material_helpers.dart';
 
 class AddMaterialScreen extends StatefulWidget {
   final String? materialId;
@@ -39,22 +40,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   late final TextEditingController _dateController;
 
   final List<String> _units = ['m³', 'm²', 'db', 'kg', 'tonna'];
-
-  String _formatPrice(double price) {
-    // Formázás 3 számjegyenkénti elválasztással szóközzel
-    final priceInt = price.toInt();
-    final priceStr = priceInt.toString();
-    final buffer = StringBuffer();
-
-    for (int i = 0; i < priceStr.length; i++) {
-      if (i > 0 && (priceStr.length - i) % 3 == 0) {
-        buffer.write(' ');
-      }
-      buffer.write(priceStr[i]);
-    }
-
-    return buffer.toString();
-  }
 
   String _formatDate(DateTime date) {
     return '${date.year}. ${date.month.toString().padLeft(2, '0')}. ${date.day.toString().padLeft(2, '0')}.';
@@ -241,7 +226,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       if (quantity != null && unitPrice != null) {
         _isUpdatingPrice = true;
         final totalPrice = quantity * unitPrice;
-        _priceController.text = totalPrice.toStringAsFixed(2);
+        _priceController.text = totalPrice.toString();
         _isUpdatingPrice = false;
       }
     }
@@ -397,7 +382,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     labelText: 'Alapanyag neve',
                     border: OutlineInputBorder(),
@@ -465,7 +450,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           ),
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d+\.?\d*'),
+                              RegExp(r'[0-9.,]'),
                             ),
                           ],
                           validator: (value) {
@@ -557,7 +542,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       decimal: true,
                     ),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*')),
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                     ],
                     validator: (value) {
                       // Az egységár opcionális
@@ -628,29 +613,14 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   unitPriceText.replaceAll(',', '.'),
                                 );
 
-                                if (quantity == null || unitPrice == null) {
-                                  return Text(
-                                    '0 HUF',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  );
-                                }
-
-                                final totalPrice = quantity * unitPrice;
-                                final formattedPrice = _formatPrice(totalPrice);
+                                final totalPrice = quantity! * unitPrice!;
+                                final formattedPrice =
+                                    AddMaterialHelpers.formatPrice(totalPrice);
 
                                 // Frissítjük a _priceController-t is a mentéshez
                                 if (!_isUpdatingPrice) {
                                   _isUpdatingPrice = true;
-                                  _priceController.text = totalPrice
-                                      .toStringAsFixed(2);
+                                  _priceController.text = totalPrice.toString();
                                   _isUpdatingPrice = false;
                                 }
 

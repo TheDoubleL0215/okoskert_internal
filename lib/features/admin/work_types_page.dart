@@ -128,7 +128,7 @@ class _WorkTypesPageState extends State<WorkTypesPage> {
                                 ? Center(
                                   child: GestureDetector(
                                     onTap: () {
-                                      print(
+                                      debugPrint(
                                         'Hiba történt: ${workTypesSnapshot.error}',
                                       );
                                     },

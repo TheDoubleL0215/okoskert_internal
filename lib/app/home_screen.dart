@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/admin/admin_screen.dart';
 import 'package:okoskert_internal/features/projects/projects_collector_screen.dart';
@@ -40,16 +41,15 @@ class _HomePageState extends State<HomePage> {
             selectedIndex: currentPageIndex,
             destinations: <Widget>[
               const NavigationDestination(
-                selectedIcon: Icon(Icons.home),
-                icon: Icon(Icons.home_outlined),
+                icon: Icon(LucideIcons.clipboardList),
                 label: 'Projektek',
               ),
               const NavigationDestination(
-                icon: Icon(Icons.calendar_month),
+                icon: Icon(LucideIcons.calendarDays),
                 label: 'Naptár',
               ),
               NavigationDestination(
-                icon: Icon(isAdmin ? Icons.settings : Icons.person),
+                icon: Icon(isAdmin ? LucideIcons.cog : LucideIcons.user),
                 label: isAdmin ? 'Admin' : 'Profil',
               ),
             ],

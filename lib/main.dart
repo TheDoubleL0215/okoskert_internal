@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:okoskert_internal/app/home_screen.dart';
+import 'package:okoskert_internal/app/app_theme.dart';
 import 'package:okoskert_internal/app/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:okoskert_internal/features/auth/login_screen.dart';
@@ -61,20 +62,8 @@ class MainApp extends StatelessWidget {
               child: child!,
             ),
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.lightGreen,
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.lightGreen,
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
         home: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, authSnapshot) {

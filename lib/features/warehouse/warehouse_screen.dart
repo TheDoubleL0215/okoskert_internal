@@ -129,7 +129,7 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     itemCount: materials.length,
                     itemBuilder: (context, index) {
                       final material = materials[index];
@@ -141,20 +141,23 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                       final price = data['price'] as num?;
                       final projectId = data['projectId'] as String?;
 
-                      return MaterialListTile(
-                        name: name,
-                        quantity: quantity,
-                        unit: unit,
-                        price: price,
-                        projectName:
-                            projectId != null ? projectsMap[projectId] : null,
-                        onTap: () {
-                          MaterialDetailsBottomSheet.show(
-                            context,
-                            material,
-                            projectsMap,
-                          );
-                        },
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: MaterialListTile(
+                          name: name,
+                          quantity: quantity,
+                          unit: unit,
+                          price: price,
+                          projectName:
+                              projectId != null ? projectsMap[projectId] : null,
+                          onTap: () {
+                            MaterialDetailsBottomSheet.show(
+                              context,
+                              material,
+                              projectsMap,
+                            );
+                          },
+                        ),
                       );
                     },
                   );
@@ -176,5 +179,4 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
       ),
     );
   }
-
 }

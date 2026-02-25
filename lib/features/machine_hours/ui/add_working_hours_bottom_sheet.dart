@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:okoskert_internal/core/utils/services/machine_work_hours_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:slide_to_act/slide_to_act.dart';
@@ -146,7 +147,7 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
         newHours: newHours,
         date: _selectedDate,
         previousHours: _currentWorkHours,
-        projectEnabled: _isProjectEnabled,
+        projectEnabled: _selectedProjectId != null,
         assignedProjectId: _selectedProjectId,
       );
 
@@ -165,187 +166,271 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 16,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Óraállás hozzáadása',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    const Text(
+                      'Óraállás hozzáadása',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
                 ),
-                Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                const SizedBox(height: 16),
+                // Dátum választó
+                TextFormField(
+                  controller: _dateController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: 'Dátum',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  onTap: _selectDate,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Dátum választó
-            TextFormField(
-              controller: _dateController,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: 'Dátum',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
-              ),
-              onTap: _selectDate,
-            ),
-            const SizedBox(height: 16),
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _newHoursController,
-              builder: (context, value, _) {
-                final parsedNewHours = _parseHours(value.text);
-                final diff =
-                    parsedNewHours != null
-                        ? parsedNewHours - _currentWorkHours
-                        : null;
-                return Container(
+                const SizedBox(height: 16),
+                Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color:
                         Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
+                  child: Column(
+                    spacing: 8,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: _HoursValue(
-                          label: 'Jelenlegi',
-                          value:
-                              _isLoadingCurrentHours
-                                  ? 'Betöltés...'
-                                  : '${_formatHours(_currentWorkHours)} óra',
-                        ),
+                      _HoursValue(
+                        label: 'Jelenlegi',
+                        value:
+                            _isLoadingCurrentHours
+                                ? 'Betöltés...'
+                                : '${_formatHours(_currentWorkHours)} óra',
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(Icons.arrow_forward_rounded),
-                      ),
-                      Expanded(
-                        child: _HoursValue(
-                          label: 'Következő',
-                          value:
-                              parsedNewHours == null
-                                  ? 'Add meg az új óraállást'
-                                  : '${_formatHours(parsedNewHours)} óra',
-                          helper:
-                              diff == null
-                                  ? null
-                                  : '+${_formatHours(diff)} óra változás',
+                      Icon(Icons.arrow_downward_rounded),
+                      SizedBox(
+                        width: 120,
+                        child: TextFormField(
+                          textInputAction: TextInputAction.done,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          textAlign: TextAlign.center,
+                          controller: _newHoursController,
+                          decoration: InputDecoration(
+                            labelText: 'Új óraállás',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            errorMaxLines: 3,
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Nincs érték megadva!';
+                            }
+                            final parsedValue = _parseHours(value);
+                            if (parsedValue == null) {
+                              return 'Nem érvényes szám!';
+                            }
+                            if (parsedValue <= _currentWorkHours) {
+                              return 'Túl alacsony érték!';
+                            }
+                            if ((parsedValue - _currentWorkHours).abs() > 10) {
+                              return 'Max. 10 óra különbség lehet!';
+                            }
+                            return null;
+                          },
                         ),
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _newHoursController,
-              decoration: const InputDecoration(
-                labelText: 'Új óraállás',
-                hintText: 'Pl. 1245.5',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Kérjük, adja meg az új óraállást';
-                }
-                final parsedValue = _parseHours(value);
-                if (parsedValue == null) {
-                  return 'Kérjük, érvényes számot adjon meg';
-                }
-                if (parsedValue <= _currentWorkHours) {
-                  return 'Az új óraállás nem lehet kisebb, mint a jelenlegi óraállás';
-                }
-                if ((parsedValue - _currentWorkHours).abs() > 10) {
-                  return 'Az új óraállás nem lehet nagyobb, mint 10 óra';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            // Projekt switch
-            ListTile(
-              leading: Switch(
-                value: _isProjectEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _isProjectEnabled = value;
-                    if (!value) {
-                      _selectedProjectId = null;
-                    }
-                  });
-                },
-              ),
-              title: const Text('Projekt'),
-            ),
-            // Projekt dropdown (csak ha a switch be van kapcsolva)
-            if (_isProjectEnabled) ...[
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedProjectId,
-                decoration: const InputDecoration(
-                  labelText: 'Projekt kiválasztása',
-                  border: OutlineInputBorder(),
                 ),
-                items:
-                    _projects.map((project) {
-                      return DropdownMenuItem<String>(
-                        value: project['id'],
-                        child: Text(project['name']!),
-                      );
-                    }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedProjectId = value;
-                  });
-                },
-                validator: (value) {
-                  if (_isProjectEnabled && value == null) {
-                    return 'Kérjük, válasszon ki egy projektet';
-                  }
-                  return null;
-                },
-              ),
-            ],
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: SlideAction(
-                sliderRotate: false,
-                outerColor: Theme.of(context).colorScheme.primary,
-                onSubmit: _saveWorkHours,
-                child: Text(
-                  'Mentés',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimary,
+                const SizedBox(height: 16),
+                // State változók - a switch helyett csak ezt tartsd meg:
+                // String? _selectedProjectId;  <- ezt már van
+                // A _isProjectEnabled-t törölheted, mert már nem kell
+
+                // A projekt box:
+                InkWell(
+                  onTap: _showProjectDialog,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.folder_outlined,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Projekt',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall?.copyWith(
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                _selectedProjectId == null
+                                    ? 'Nincs kiválasztva'
+                                    : _projects.firstWhere(
+                                      (p) => p['id'] == _selectedProjectId,
+                                    )['name']!,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: SlideAction(
+                    sliderRotate: false,
+                    innerColor: Theme.of(context).colorScheme.surfaceContainer,
+                    outerColor: Theme.of(context).colorScheme.primary,
+                    onSubmit: _saveWorkHours,
+                    child: Text(
+                      'Óraállás rögzítése',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _showProjectDialog() async {
+    String? tempSelected = _selectedProjectId;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              insetPadding: EdgeInsets.zero,
+              title: const Text('Projekt kiválasztása'),
+              titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              contentPadding: EdgeInsets.zero,
+              actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Divider(),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.4,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // "None" option
+                          RadioListTile<String?>(
+                            title: const Text('Nincs'),
+                            value: null,
+                            groupValue: tempSelected,
+                            // Ensure you use the specific type in the callback
+                            onChanged: (String? value) {
+                              setDialogState(() => tempSelected = value);
+                            },
+                          ),
+                          // Project options
+                          ..._projects.map((project) {
+                            return RadioListTile<String?>(
+                              title: Text(project['name']!),
+                              value: project['id'],
+                              groupValue: tempSelected,
+                              onChanged: (String? value) {
+                                setDialogState(() => tempSelected = value);
+                              },
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Divider(),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Mégse'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _selectedProjectId = tempSelected);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (mounted) FocusManager.instance.primaryFocus?.unfocus();
   }
 }
 
@@ -359,21 +444,27 @@ class _HoursValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 4),
-        Text(value, style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         if (helper != null) ...[
           const SizedBox(height: 2),
           Text(
             helper!,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: Theme.of(context).colorScheme.primary,
             ),
           ),

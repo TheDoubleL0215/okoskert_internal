@@ -207,7 +207,7 @@ class _FullScreenViewerState extends State<FullScreenViewer> {
             ? 1 - ((_positionYDelta / 1000) * -1)
             : 1 - (_positionYDelta / 1000);
     if (kDebugMode) {
-      print(tmp);
+      debugPrint(tmp.toString());
     }
 
     if (tmp > 1) {

@@ -292,10 +292,26 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                                                     Icon(
                                                       LucideIcons.wrench,
                                                       size: 16,
+                                                      color:
+                                                          ColorScheme.fromSeed(
+                                                            seedColor:
+                                                                Colors.amber,
+                                                            brightness:
+                                                                Brightness
+                                                                    .light,
+                                                          ).onPrimaryContainer,
                                                     ),
                                                     Text(
                                                       "Karbantartásra vár",
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
+                                                        color:
+                                                            ColorScheme.fromSeed(
+                                                              seedColor:
+                                                                  Colors.amber,
+                                                              brightness:
+                                                                  Brightness
+                                                                      .light,
+                                                            ).onPrimaryContainer,
                                                         fontWeight:
                                                             FontWeight.w600,
                                                         fontSize: 14,
@@ -489,10 +505,14 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
                         }
                       },
                       sliderRotate: false,
+                      innerColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
                       outerColor: Theme.of(context).colorScheme.primary,
                       child: Text(
                         'Karbantartás rögzítése',
                         style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                           color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       ),

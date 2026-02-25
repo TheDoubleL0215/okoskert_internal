@@ -53,7 +53,6 @@ class _MaterialDetailsContent extends StatelessWidget {
   final num? unitPrice;
   final String? priceMode;
   final String? projectId;
-  final Timestamp? createdAt;
   final Timestamp? date;
   final Map<String, String> projectsMap;
 
@@ -66,7 +65,6 @@ class _MaterialDetailsContent extends StatelessWidget {
     this.unitPrice,
     this.priceMode,
     this.projectId,
-    this.createdAt,
     required this.projectsMap,
     this.date,
   });
@@ -187,157 +185,152 @@ class _MaterialDetailsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder:
-          (context, scrollController) => SingleChildScrollView(
-            controller: scrollController,
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
                 children: [
-                  // Header
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        child: Icon(LucideIcons.package, size: 32),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                  CircleAvatar(
+                    radius: 30,
+                    child: Icon(LucideIcons.package, size: 32),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (date != null)
+                          Text(
+                            'Hozzáadva: ${_formatDate(date!.toDate())}',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                             ),
-                            if (date != null)
-                              Text(
-                                'Hozzáadva: ${_formatDate(date!.toDate())}',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Mennyiség információ
-                  _buildInfoRow(
-                    context,
-                    icon: LucideIcons.scale,
-                    label: 'Mennyiség',
-                    value: '$quantity $unit',
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Ár információk
-                  if (price != null || unitPrice != null) ...[
-                    if (priceMode == 'unitPrice' && unitPrice != null) ...[
-                      _buildInfoRow(
-                        context,
-                        icon: LucideIcons.dollarSign,
-                        label: 'Egységár',
-                        value:
-                            '${_formatPrice(unitPrice!.toDouble())} HUF/$unit',
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    if (price != null)
-                      _buildInfoRow(
-                        context,
-                        icon: LucideIcons.receipt,
-                        label: 'Összesen',
-                        value: '${_formatPrice(price!.toDouble())} HUF',
-                        isHighlighted: true,
-                      ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Projekt információ
-                  if (projectId != null &&
-                      projectsMap.containsKey(projectId)) ...[
-                    _buildInfoRow(
-                      context,
-                      icon: LucideIcons.folder,
-                      label: 'Projekt',
-                      value: projectsMap[projectId]!,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Edit gomb
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => AddMaterialScreen(
-                                  materialId: material.id,
-                                  initialData: material.data(),
-                                ),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Szerkesztés'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Delete gomb
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showDeleteConfirmation(context),
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Törlés'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        foregroundColor: Theme.of(context).colorScheme.error,
-                        side: BorderSide(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // Mennyiség információ
+              _buildInfoRow(
+                context,
+                icon: LucideIcons.scale,
+                label: 'Mennyiség',
+                value: '$quantity $unit',
+              ),
+              const SizedBox(height: 16),
+
+              // Ár információk
+              if (price != null || unitPrice != null) ...[
+                if (priceMode == 'unitPrice' && unitPrice != null) ...[
+                  _buildInfoRow(
+                    context,
+                    icon: LucideIcons.dollarSign,
+                    label: 'Egységár',
+                    value: '${_formatPrice(unitPrice!.toDouble())} HUF/$unit',
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (price != null)
+                  _buildInfoRow(
+                    context,
+                    icon: LucideIcons.receipt,
+                    label: 'Összesen',
+                    value: '${_formatPrice(price!.toDouble())} HUF',
+                    isHighlighted: true,
+                  ),
+                const SizedBox(height: 16),
+              ],
+
+              // Projekt információ
+              if (projectId != null && projectsMap.containsKey(projectId)) ...[
+                _buildInfoRow(
+                  context,
+                  icon: LucideIcons.folder,
+                  label: 'Projekt',
+                  value: projectsMap[projectId]!,
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // Edit gomb
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => AddMaterialScreen(
+                              materialId: material.id,
+                              initialData: material.data(),
+                            ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Szerkesztés'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Delete gomb
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showDeleteConfirmation(context),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Törlés'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 }

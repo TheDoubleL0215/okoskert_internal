@@ -378,7 +378,6 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    print(jsonEncode(data));
     try {
       if (widget.projectId != null) {
         // Update existing project

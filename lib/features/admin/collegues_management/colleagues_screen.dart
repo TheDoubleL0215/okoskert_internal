@@ -201,6 +201,9 @@ class _SalaryBottomSheetState extends State<_SalaryBottomSheet> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
                       onPressed:
                           _isSaving ? null : () => Navigator.of(context).pop(),
                       child: const Text('Mégse'),
@@ -209,6 +212,9 @@ class _SalaryBottomSheetState extends State<_SalaryBottomSheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
                       onPressed: _isSaving ? null : _saveSalary,
                       child:
                           _isSaving

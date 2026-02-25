@@ -50,6 +50,7 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
             spacing: 8,
             children: [
               SearchAnchor.bar(
+                textCapitalization: TextCapitalization.sentences,
                 onClose: () {
                   // Adding a frame delay ensures the focus doesn't
                   // snap back to the search bar once the view is gone.

@@ -471,11 +471,12 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
+                style: TextButton.styleFrom(padding: const EdgeInsets.all(16)),
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Bezárás'),
               ),
@@ -487,6 +488,9 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
                 },
                 icon: const Icon(Icons.edit),
                 label: const Text('Szerkesztés'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                ),
               ),
             ],
           ),

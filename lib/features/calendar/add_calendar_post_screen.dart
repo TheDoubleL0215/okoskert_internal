@@ -965,7 +965,13 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                     decoration: const InputDecoration(
                       hintText: 'Cím',
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
                     ),
+
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Kérjük, adja meg a címet';
@@ -980,6 +986,11 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                     decoration: const InputDecoration(
                       hintText: 'Leírás',
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
                     ),
                     maxLines: 4,
                   ),

@@ -12,6 +12,8 @@ import 'package:okoskert_internal/features/auth/create_new_workspace_screen.dart
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toastification/toastification.dart';
+import 'package:flutter/foundation.dart';
+import 'package:okoskert_internal/features/web_layout/web_main_layout.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -51,6 +53,15 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+
+    // In dev for web layout bypass
+    if (kIsWeb) {
+        return MaterialApp(
+            home: const WebMainLayout(),
+            debugShowCheckedModeBanner: false,
+        );
+    }
+
     return ToastificationWrapper(
       child: MaterialApp(
         themeMode: themeProvider.themeMode,

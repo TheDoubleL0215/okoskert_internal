@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:okoskert_internal/features/dashboard/dashboard_screen.dart';
 
 class WebMainLayout extends StatefulWidget {
   const WebMainLayout({super.key});
@@ -9,6 +10,8 @@ class WebMainLayout extends StatefulWidget {
 }
 
 class _WebMainLayoutState extends State<WebMainLayout> {
+  int _selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,11 +53,11 @@ class _WebMainLayoutState extends State<WebMainLayout> {
                 const SizedBox(height: 16),
 
                 // Navigation Items
-                _buildNavItem(Icons.dashboard, 'Vezérlőpult', isActive: true),
-                _buildNavItem(Icons.people, 'Ügyfelek & Projektek'),
-                _buildNavItem(Icons.attach_money, 'Pénzügy / Számlázás'),
-                _buildNavItem(Icons.chat, 'Kommunikáció'),
-                _buildNavItem(Icons.group, 'Csapat'),
+                _buildNavItem(0, Icons.dashboard, 'Vezérlőpult'),
+                _buildNavItem(1, Icons.people, 'Ügyfelek & Projektek'),
+                _buildNavItem(2, Icons.attach_money, 'Pénzügy / Számlázás'),
+                _buildNavItem(3, Icons.chat, 'Kommunikáció'),
+                _buildNavItem(4, Icons.group, 'Csapat'),
 
                 const Spacer(),
 
@@ -139,12 +142,7 @@ class _WebMainLayoutState extends State<WebMainLayout> {
                 Expanded(
                   child: Container(
                     color: Colors.grey[100],
-                    child: const Center(
-                      child: Text(
-                        'Vezérlőpult tartalom helye',
-                        style: TextStyle(fontSize: 24, color: Colors.black54),
-                      ),
-                    ),
+                    child: _buildMainContent(),
                   ),
                 ),
               ],
@@ -161,7 +159,23 @@ class _WebMainLayoutState extends State<WebMainLayout> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String title, {bool isActive = false}) {
+  Widget _buildMainContent() {
+    switch (_selectedIndex) {
+      case 0:
+        return const DashboardScreen();
+      default:
+        return const Center(
+          child: Text(
+            'Hamarosan érkezik',
+            style: TextStyle(fontSize: 24, color: Colors.black54),
+          ),
+        );
+    }
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String title) {
+    final isActive = _selectedIndex == index;
+
     return Material(
       color: Colors.transparent,
       child: ListTile(
@@ -178,7 +192,9 @@ class _WebMainLayoutState extends State<WebMainLayout> {
         ),
         tileColor: isActive ? Colors.white.withValues(alpha: 0.1) : null,
         onTap: () {
-          // TODO: handle navigation
+          setState(() {
+            _selectedIndex = index;
+          });
         },
       ),
     );

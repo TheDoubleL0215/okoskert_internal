@@ -12,7 +12,7 @@ class ColleagueTimeEntryWidget extends StatefulWidget {
 }
 
 class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
-  String? _selectedEmployeeName;
+  String? _selectedEmployeeId;
   List<Map<String, dynamic>> _employees = [];
   bool _isLoading = true;
   TimeOfDay? _startTime;
@@ -101,7 +101,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
 
   Map<String, dynamic> _getData() {
     return {
-      'employeeId': _selectedEmployeeName,
+      'employeeId': _selectedEmployeeId,
       'startTime':
           _startTime != null
               ? '${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}'
@@ -138,7 +138,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
             const Text('Nincsenek elérhető dolgozók')
           else
             DropdownButtonFormField<String>(
-              initialValue: _selectedEmployeeName,
+              initialValue: _selectedEmployeeId,
               decoration: const InputDecoration(
                 labelText: 'Dolgozó',
                 border: OutlineInputBorder(),
@@ -146,12 +146,13 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
               items:
                   _employees.map((employee) {
                     final name = employee['name'] as String? ?? 'Névtelen';
-                    return DropdownMenuItem(value: name, child: Text(name));
+                    final id = employee['id'] as String? ?? '';
+                    return DropdownMenuItem(value: id, child: Text(name));
                   }).toList(),
               onChanged: (value) {
                 if (!mounted) return;
                 setState(() {
-                  _selectedEmployeeName = value;
+                  _selectedEmployeeId = value;
                 });
                 _notifyChanged();
               },

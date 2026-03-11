@@ -54,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         // Regisztráció
         final accessCode = _accessCodeController.text.trim();
+        debugPrint('accessCode: $accessCode');
 
         // Ha a hozzáférési kód "CNWS", navigáljunk a CreateNewWorkspaceScreen-re
         if (accessCode == 'CNWS') {

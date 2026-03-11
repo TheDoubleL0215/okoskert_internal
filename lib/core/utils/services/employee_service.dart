@@ -3,17 +3,13 @@ import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 
 class EmployeeService {
   /// Lekérdezi az összes dolgozót a Firestore "users" kollekcióból,
-  /// ahol a felhasználó teamId-je megegyezik a SharedPreferences-ben tárolt teamId-vel
+  /// ahol a felhasználó workspaceRef-je megegyezik a jelenlegi munkatér referenciájával
+  /// (ugyanaz, amit a WorkspaceProvider tárol).
   ///
-  /// Visszatér a dolgozók listájával Map formátumban
+  /// Visszatér a dolgozók listájával Map formátumban.
   static Future<List<Map<String, dynamic>>> getEmployees() async {
     try {
       final teamId = await UserService.getTeamId();
-
-      if (teamId == null || teamId.isEmpty) {
-        return [];
-      }
-
       final snapshot =
           await FirebaseFirestore.instance
               .collection('users')

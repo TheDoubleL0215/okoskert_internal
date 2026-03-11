@@ -6,6 +6,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:okoskert_internal/app/home_screen.dart';
 import 'package:okoskert_internal/app/app_theme.dart';
 import 'package:okoskert_internal/app/theme_provider.dart';
+import 'package:okoskert_internal/app/workspace_provider.dart';
+import 'package:okoskert_internal/data/services/employee_name_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:okoskert_internal/features/auth/login_screen.dart';
 import 'package:okoskert_internal/features/auth/create_new_workspace_screen.dart';
@@ -20,7 +22,10 @@ void main() async {
   await initializeDateFormatting('hu_HU', null);
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (context) => ThemeProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => WorkspaceProvider()),
+      ],
       child: MainApp(),
     ),
   );
@@ -74,6 +79,10 @@ class MainApp extends StatelessWidget {
             }
             final user = authSnapshot.data;
             if (user == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.read<WorkspaceProvider>().clearWorkspaceRef();
+                EmployeeNameService.clearCache();
+              });
               return const LoginScreen();
             }
 
@@ -145,7 +154,7 @@ class MainApp extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'A munkatér létrehozója hamarosan elfogadja a kérelmed és hozzárendel egy szerepkört.',
+                                        'A munkatér létrehozója hamarosan elfogadja a kérelmed és hozzádrendel egy szerepkört.',
                                         style: Theme.of(
                                           context,
                                         ).textTheme.bodyLarge?.copyWith(
@@ -190,17 +199,61 @@ class MainApp extends StatelessWidget {
                   );
                 }
 
-                // Mentjük a teamId-t és role-t SharedPreferences-be
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _saveUserPreferences(teamId, roleNumber);
-                });
-
-                return const HomePage();
+                // Egyszer betöltjük a sessiont (prefs + workspace ref), aztán megjelenítjük a főoldalt
+                return _AuthenticatedLoader(
+                  teamId: teamId,
+                  roleNumber: roleNumber,
+                  saveUserPreferences: _saveUserPreferences,
+                );
               },
             );
           },
         ),
       ),
     );
+  }
+}
+
+/// Bejelentkezés után egyszer lefuttatja a prefs mentését és a workspace ref betöltését,
+/// majd megjeleníti a HomePage-t. Így a workspaceRef minden widget számára már elérhető.
+class _AuthenticatedLoader extends StatefulWidget {
+  final dynamic teamId;
+  final dynamic roleNumber;
+  final Future<void> Function(dynamic teamId, dynamic roleNumber)
+  saveUserPreferences;
+
+  const _AuthenticatedLoader({
+    required this.teamId,
+    required this.roleNumber,
+    required this.saveUserPreferences,
+  });
+
+  @override
+  State<_AuthenticatedLoader> createState() => _AuthenticatedLoaderState();
+}
+
+class _AuthenticatedLoaderState extends State<_AuthenticatedLoader> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await widget.saveUserPreferences(widget.teamId, widget.roleNumber);
+    if (!mounted) return;
+    await context.read<WorkspaceProvider>().loadWorkspaceRef();
+    if (!mounted) return;
+    setState(() => _ready = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return const HomePage();
   }
 }

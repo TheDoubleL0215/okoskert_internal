@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueTimeEntryWidget.dart';
+import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 
 class ProjectAddDataCollegues extends StatefulWidget {
   final String projectId;
-  final String projectName;
-  const ProjectAddDataCollegues({
-    super.key,
-    required this.projectId,
-    required this.projectName,
-  });
+  const ProjectAddDataCollegues({super.key, required this.projectId});
 
   @override
   State<ProjectAddDataCollegues> createState() =>
@@ -145,11 +141,36 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
       }
     }
 
-    // Validáció: ellenőrizzük, hogy az adott dolgozóhoz és dátumhoz már létezik-e rekord
-    final worklogRef = FirebaseFirestore.instance
-        .collection('projects')
-        .doc(widget.projectId)
-        .collection('worklog');
+    final teamId = await UserService.getTeamId();
+    if (teamId == null || teamId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hiba: nem található teamId')),
+      );
+      return;
+    }
+
+    final workspaceQuery =
+        await FirebaseFirestore.instance
+            .collection('workspaces')
+            .where('teamId', isEqualTo: teamId)
+            .limit(1)
+            .get();
+
+    if (workspaceQuery.docs.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hiba: nem található workspace a teamId-hoz'),
+        ),
+      );
+      return;
+    }
+
+    // Validáció és mentés a workspace worklogs alkollekciójába történik.
+    final worklogRef = workspaceQuery.docs.first.reference.collection(
+      'worklogs',
+    );
 
     final targetDate = DateTime(
       _selectedDate.year,
@@ -172,7 +193,7 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
       // A date mező Timestamp-ként van tárolva Firestore-ban
       final existingRecords =
           await worklogRef
-              .where('employeeName', isEqualTo: employeeId)
+              .where('employeeId', isEqualTo: employeeId)
               .where('date', isEqualTo: targetDateTimestamp)
               .get();
 
@@ -215,11 +236,6 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
     }
 
     try {
-      final worklogRef = FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectId)
-          .collection('worklog');
-
       // Batch write a jobb teljesítményért
       final batch = FirebaseFirestore.instance.batch();
 
@@ -260,7 +276,7 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
 
         // Adatok összeállítása
         final workLogData = {
-          'employeeName': employeeId,
+          'employeeId': employeeId,
           'startTime':
               startDateTime, // Firestore automatikusan Timestamp-ekké konvertálja
           'endTime':
@@ -271,6 +287,7 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
             _selectedDate.month,
             _selectedDate.day,
           ), // Dátum is timestamp-ként mentve (éjfél)
+          "assignedProjectId": widget.projectId,
           'createdAt': FieldValue.serverTimestamp(), // Létrehozás ideje
           'description': description,
         };

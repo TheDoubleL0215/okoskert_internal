@@ -42,7 +42,10 @@ class MachineWorkHoursService {
     await FirebaseFirestore.instance
         .collection('machines')
         .doc(machineId)
-        .update({'hours': newHours, 'updatedAt': FieldValue.serverTimestamp()});
+        .update({
+          'hours': FieldValue.increment(newHours - previousHours),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
   }
 
   static Future<void> logMaintenance({

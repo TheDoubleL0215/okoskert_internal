@@ -132,11 +132,14 @@ class _JoinRequestCardState extends State<_JoinRequestCard> {
     });
 
     try {
-      // Frissítjük a felhasználó role-ját
+      // Frissítjük a felhasználó role-ját és a workspace ref-et (több helyen használható)
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.userId)
-          .update({'role': _roleMap[_selectedRole]});
+          .update({
+            'role': _roleMap[_selectedRole],
+            'workspaceRef': widget.workspaceRef,
+          });
 
       // Töröljük a joinRequest-et
       await widget.workspaceRef

@@ -21,7 +21,7 @@ class _AddWorkHoursBottomSheetState extends State<AddWorkHoursBottomSheet> {
   late TextEditingController _dateController;
   num _currentWorkHours = 0;
   bool _isLoadingCurrentHours = true;
-  bool _isProjectEnabled = false;
+
   String? _selectedProjectId;
   List<Map<String, String>> _projects = [];
 

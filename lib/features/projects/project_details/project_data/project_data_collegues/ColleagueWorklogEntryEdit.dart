@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/app/workspace_provider.dart';
+import 'package:provider/provider.dart';
 
 // Bottom sheet a munkanapló bejegyzés szerkesztéséhez
 
 class EditWorklogBottomSheet extends StatefulWidget {
   final QueryDocumentSnapshot<Map<String, dynamic>> doc;
-  final String projectId;
   final DateTime? initialStartTime;
   final DateTime? initialEndTime;
   final int initialBreakMinutes;
@@ -15,7 +16,6 @@ class EditWorklogBottomSheet extends StatefulWidget {
   const EditWorklogBottomSheet({
     super.key,
     required this.doc,
-    required this.projectId,
     this.initialStartTime,
     this.initialEndTime,
     this.initialBreakMinutes = 0,
@@ -154,28 +154,25 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
     });
 
     try {
-      await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectId)
-          .collection('worklog')
-          .doc(widget.doc.id)
-          .update({
-            'startTime': _selectedStartTime,
-            'endTime': _selectedEndTime,
-            'breakMinutes': breakMinutes,
-            'date': DateTime(
-              _selectedDate.year,
-              _selectedDate.month,
-              _selectedDate.day,
-            ),
-            'updatedAt': FieldValue.serverTimestamp(),
-            'description': _descriptionController.text.trim(),
-          });
+      final workspaceRef = context.read<WorkspaceProvider>().workspaceRef;
+      if (workspaceRef == null) {
+        throw Exception('Nem található workspace a teamId alapján');
+      }
 
-      await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectId)
-          .update({'updatedAt': FieldValue.serverTimestamp()});
+      await workspaceRef.collection('worklogs').doc(widget.doc.id).update({
+        'startTime': _selectedStartTime,
+        'endTime': _selectedEndTime,
+        'breakMinutes': breakMinutes,
+        'date': DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+        ),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'description': _descriptionController.text.trim(),
+      });
+
+      await workspaceRef.update({'updatedAt': FieldValue.serverTimestamp()});
 
       if (!mounted) return;
 
@@ -226,17 +223,14 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
     });
 
     try {
-      await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectId)
-          .collection('worklog')
-          .doc(widget.doc.id)
-          .delete();
+      final workspaceRef = context.read<WorkspaceProvider>().workspaceRef;
+      if (workspaceRef == null) {
+        throw Exception('Nem található workspace a teamId alapján');
+      }
 
-      await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectId)
-          .update({'updatedAt': FieldValue.serverTimestamp()});
+      await workspaceRef.collection('worklogs').doc(widget.doc.id).delete();
+
+      await workspaceRef.update({'updatedAt': FieldValue.serverTimestamp()});
 
       if (!mounted) return;
 
@@ -316,7 +310,6 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
-              onChanged: (_) => _saveChanges(),
             ),
             const SizedBox(height: 16),
             // Dátum választó
@@ -362,6 +355,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                       )
                       : const Text('Mentés'),
             ),
+            const SizedBox(height: 8),
             // Törlés gomb
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(

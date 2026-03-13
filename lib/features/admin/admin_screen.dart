@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:okoskert_internal/app/settings_screen.dart';
-import 'package:okoskert_internal/features/admin/collegues_management/colleagues_screen.dart';
+import 'package:okoskert_internal/features/admin/collegues_management/view/colleagues_screen.dart';
 import 'package:okoskert_internal/features/admin/join_request/join_requests_page.dart';
 import 'package:okoskert_internal/features/admin/work_types_page.dart';
 import 'package:okoskert_internal/features/admin/admin_menu_tile.dart';

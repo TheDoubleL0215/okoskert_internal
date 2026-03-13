@@ -1,6 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProjectService {
+  /// Lekérdezi a csapat projekteit a Firestore "projects" kollekcióból teamId alapján.
+  /// Visszatér a projektek listájával Map formátumban (id, projectName, ...).
+  static Future<List<Map<String, dynamic>>> getProjectsByTeamId(
+    String teamId,
+  ) async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('projects')
+              .where('teamId', isEqualTo: teamId)
+              .get();
+      return snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Lekérdezi a projekt adatait a Firestore "projects" kollekcióból az ID alapján
   ///
   /// [projectId] - A projekt dokumentum ID-ja

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:okoskert_internal/app/home_screen.dart';
 import 'package:okoskert_internal/app/app_theme.dart';
@@ -58,6 +59,13 @@ class MainApp extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
     return ToastificationWrapper(
       child: MaterialApp(
+        locale: const Locale('hu', 'HU'),
+        supportedLocales: const [Locale('hu', 'HU'), Locale('en', 'US')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         themeMode: themeProvider.themeMode,
         builder:
             (context, child) => MediaQuery(

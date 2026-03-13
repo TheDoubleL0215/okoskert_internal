@@ -24,4 +24,26 @@ class UsersServices {
       'salary': salary,
     });
   }
+
+  /// Új munkatárs hozzáadása csak a Firestore users gyűjteményhez (nincs Auth).
+  /// A teamId a bejelentkezett felhasználó csapatából kerül.
+  static Future<void> addUserToTeam({
+    required String name,
+    required String email,
+    required int role,
+  }) async {
+    final teamId = await UserService.getTeamId();
+    if (teamId == null || teamId.isEmpty) {
+      throw Exception('Nincs csapat az aktuális felhasználóhoz.');
+    }
+
+    await FirebaseFirestore.instance.collection('users').add({
+      'name': name.trim(),
+      'email': email.trim(),
+      'role': role,
+      'teamId': teamId,
+      'salary': 0,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
 }

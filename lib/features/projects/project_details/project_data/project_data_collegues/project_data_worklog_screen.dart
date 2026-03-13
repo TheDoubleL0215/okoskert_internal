@@ -4,7 +4,8 @@ import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/data/services/employee_name_service.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueWorklogEntryEdit.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ProjectAddDataCollegues.dart';
-import 'package:okoskert_internal/features/worklog/widgets/worklog_entry_tile.dart';
+import 'package:okoskert_internal/features/worklog/models/worklog_item_model.dart';
+import 'package:okoskert_internal/shared/widgets/worklog_entry_tile.dart';
 import 'package:provider/provider.dart';
 
 class ProjectDataWorklogScreen extends StatefulWidget {
@@ -148,7 +149,6 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
             builder: (context, nameSnap) {
               final employeeNames = nameSnap.data ?? {};
               return ListView.builder(
-                padding: const EdgeInsets.all(16),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
@@ -158,7 +158,10 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
                     final formattedDate =
                         '${dateParts[0]}. ${dateParts[1]}. ${dateParts[2]}.';
                     return Padding(
-                      padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 16,
+                      ),
                       child: Text(
                         formattedDate,
                         style: Theme.of(
@@ -176,32 +179,41 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
 
                   final employeeId =
                       data['employeeId'] ?? data['employeeName'] ?? '';
-                  final employeeName =
-                      employeeId.isEmpty
-                          ? 'Ismeretlen'
-                          : (employeeNames[employeeId] ?? employeeId);
+                  final employeeName;
                   final startTime = data['startTime'] as Timestamp?;
                   final endTime = data['endTime'] as Timestamp?;
                   final breakMinutes = data['breakMinutes'] as int? ?? 0;
                   final date = data['date'] as Timestamp?;
                   final description = data['description'] as String? ?? '';
-
-                  return WorklogEntryTile(
-                    employeeName: employeeName,
-                    startTime: startTime?.toDate(),
-                    endTime: endTime?.toDate(),
+                  final worklogViewItem = WorklogItemModel(
+                    id: doc.id,
+                    employeeName:
+                        employeeId.isEmpty
+                            ? 'Ismeretlen'
+                            : (employeeNames[employeeId] ?? employeeId),
+                    employeeId: employeeId,
+                    date: date?.toDate() ?? DateTime.now(),
+                    workedMinutes:
+                        startTime
+                            ?.toDate()
+                            .difference(endTime?.toDate() ?? DateTime.now())
+                            .inMinutes ??
+                        0,
+                    startTime: startTime?.toDate() ?? DateTime.now(),
+                    endTime: endTime?.toDate() ?? DateTime.now(),
                     breakMinutes: breakMinutes,
                     description: description,
-                    showDivider: true,
+                  );
+
+                  return WorklogEntryTile(
+                    item: worklogViewItem,
                     onTap:
-                        () => _showEditBottomSheet(
-                          context,
-                          doc,
-                          startTime?.toDate(),
-                          endTime?.toDate(),
-                          breakMinutes,
-                          date?.toDate(),
-                          description,
+                        () => showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder:
+                              (context) =>
+                                  EditWorklogBottomSheet(item: worklogViewItem),
                         ),
                   );
                 },
@@ -215,30 +227,6 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
 
   String _getDateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-
-  void _showEditBottomSheet(
-    BuildContext context,
-    QueryDocumentSnapshot<Map<String, dynamic>> doc,
-    DateTime? initialStartTime,
-    DateTime? initialEndTime,
-    int initialBreakMinutes,
-    DateTime? initialDate,
-    String? initialDescription,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder:
-          (context) => EditWorklogBottomSheet(
-            doc: doc,
-            initialStartTime: initialStartTime,
-            initialEndTime: initialEndTime,
-            initialBreakMinutes: initialBreakMinutes,
-            initialDate: initialDate,
-            initialDescription: initialDescription,
-          ),
-    );
   }
 }
 

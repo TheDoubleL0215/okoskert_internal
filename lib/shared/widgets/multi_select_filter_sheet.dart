@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 /// A [future] a {id, label} párok listáját adja; a kiválasztott id-kat [selectedIds]-ként kapja,
 /// és "Alkalmaz" esetén ezt a Set<String>-et adja vissza a Navigator.pop-kal.
 class MultiSelectFilterSheet extends StatefulWidget {
-  final String title;
-  final Future<List<Map<String, String>>> future;
-  final Set<String> selectedIds;
-
   const MultiSelectFilterSheet({
     super.key,
     required this.title,
     required this.future,
     required this.selectedIds,
   });
+
+  final String title;
+  final Future<List<Map<String, String>>> future;
+  final Set<String> selectedIds;
 
   @override
   State<MultiSelectFilterSheet> createState() => _MultiSelectFilterSheetState();

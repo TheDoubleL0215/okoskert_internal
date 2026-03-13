@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:okoskert_internal/data/services/employee_name_service.dart';
-import 'package:okoskert_internal/features/worklog/models/worklog_view_item.dart';
+import 'package:okoskert_internal/features/worklog/models/worklog_item_model.dart';
 
 /// Stream of worklogs for the given workspace, with project and employee names resolved.
 /// [workspaceRef] – reference to the workspace document (e.g. from WorkspaceProvider).
 /// [teamId] – used to load project names from the `projects` collection.
-Stream<List<WorklogViewItem>> getHydratedWorklogs(
+Stream<List<WorklogItemModel>> getHydratedWorklogs(
   DocumentReference<Map<String, dynamic>> workspaceRef,
   String teamId,
 ) {
@@ -16,7 +16,7 @@ Stream<List<WorklogViewItem>> getHydratedWorklogs(
       .asyncMap((worklogSnap) async {
         final worklogDocs = worklogSnap.docs;
 
-        if (worklogDocs.isEmpty) return <WorklogViewItem>[];
+        if (worklogDocs.isEmpty) return <WorklogItemModel>[];
 
         // 1. Project names from `projects` collection (by teamId)
         final projectSnap =
@@ -67,7 +67,7 @@ Stream<List<WorklogViewItem>> getHydratedWorklogs(
             if (workedMinutes < 0) workedMinutes = 0;
           }
 
-          return WorklogViewItem(
+          return WorklogItemModel(
             id: doc.id,
             employeeName: employeeNames[uId] ?? uId,
             projectName:
@@ -78,8 +78,8 @@ Stream<List<WorklogViewItem>> getHydratedWorklogs(
             description: (data['description'] as String?) ?? '',
             date: date?.toDate() ?? DateTime.now(),
             workedMinutes: workedMinutes,
-            startTime: startTime?.toDate(),
-            endTime: endTime?.toDate(),
+            startTime: startTime?.toDate() ?? DateTime.now(),
+            endTime: endTime?.toDate() ?? DateTime.now(),
             breakMinutes: breakMinutes,
           );
         }).toList();

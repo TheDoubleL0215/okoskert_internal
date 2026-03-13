@@ -39,7 +39,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   DateTime _selectedDate = DateTime.now();
   late final TextEditingController _dateController;
 
-  final List<String> _units = ['m³', 'm²', 'db', 'kg', 'tonna'];
+  final List<String> _units = [
+    'm³',
+    'm²',
+    'db',
+    'kg',
+    'tonna',
+    "méter",
+    "centiméter",
+  ];
 
   String _formatDate(DateTime date) {
     return '${date.year}. ${date.month.toString().padLeft(2, '0')}. ${date.day.toString().padLeft(2, '0')}.';
@@ -432,55 +440,53 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   onTap: _selectDate,
                 ),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Quantity field takes more space, unit just enough
                     Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: TextFormField(
-                          controller: _quantityController,
-                          decoration: const InputDecoration(
-                            labelText: 'Mennyiség',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[0-9.,]'),
-                            ),
-                          ],
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'A mennyiség kötelező';
-                            }
-                            if (double.tryParse(
-                                  value.trim().replaceAll(',', '.'),
-                                ) ==
-                                null) {
-                              return 'Kérjük, érvényes számot adjon meg';
-                            }
-                            return null;
-                          },
+                      child: TextFormField(
+                        controller: _quantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Mennyiség',
+                          border: OutlineInputBorder(),
                         ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                        ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'A mennyiség kötelező';
+                          }
+                          if (double.tryParse(
+                                value.trim().replaceAll(',', '.'),
+                              ) ==
+                              null) {
+                            return 'Kérjük, érvényes számot adjon meg';
+                          }
+                          return null;
+                        },
                       ),
                     ),
-                    Expanded(
-                      flex: 1,
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 130,
                       child: DropdownButtonFormField<String>(
                         value: _selectedUnit,
                         decoration: const InputDecoration(
                           labelText: 'Mértékegység',
                           border: OutlineInputBorder(),
                         ),
+                        isExpanded: true,
                         items:
                             _units.map((String unit) {
                               return DropdownMenuItem<String>(
                                 value: unit,
-                                child: Text(unit),
+                                child: Text(
+                                  unit,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               );
                             }).toList(),
                         onChanged: (String? newValue) {

@@ -5,7 +5,7 @@ import 'package:okoskert_internal/features/admin/admin_screen.dart';
 import 'package:okoskert_internal/features/projects/projects_collector_screen.dart';
 import 'package:okoskert_internal/features/calendar/calendar_screen.dart';
 import 'package:okoskert_internal/app/profile_screen.dart';
-import 'package:okoskert_internal/features/worklog/worklog_screen.dart';
+import 'package:okoskert_internal/features/worklog/view/worklog_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

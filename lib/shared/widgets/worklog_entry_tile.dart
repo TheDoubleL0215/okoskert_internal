@@ -26,7 +26,7 @@ class WorklogEntryTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  item.employeeName ?? 'Ismeretlen felhasználó',
+                  item.employeeName ?? '',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,

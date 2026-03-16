@@ -55,7 +55,7 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         label: const Text(
-          'Új munkaóra hozzáadása',
+          'Új bejegyzés hozzáadása',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         onPressed: () {
@@ -70,157 +70,168 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
         },
         icon: const Icon(Icons.person_add),
       ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream:
-            workspaceRef
-                .collection('worklogs')
-                .where('assignedProjectId', isEqualTo: widget.projectId)
-                .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 72),
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream:
+              workspaceRef
+                  .collection('worklogs')
+                  .where('assignedProjectId', isEqualTo: widget.projectId)
+                  .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            debugPrint(
-              'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
-            );
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  textAlign: TextAlign.center,
+            if (snapshot.hasError) {
+              debugPrint(
+                'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
+              );
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-            );
-          }
-
-          final worklogDocs = snapshot.data?.docs ?? [];
-
-          if (worklogDocs.isEmpty) {
-            return const Center(
-              child: Text(
-                'Még nincsenek munkanapló bejegyzések',
-                style: TextStyle(fontSize: 16),
-              ),
-            );
-          }
-
-          final groupedByDate =
-              <String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>{};
-
-          for (final doc in worklogDocs) {
-            final data = doc.data();
-            final date = data['date'] as Timestamp?;
-            if (date != null) {
-              final dateKey = _getDateKey(date.toDate());
-              groupedByDate.putIfAbsent(dateKey, () => []).add(doc);
+              );
             }
-          }
 
-          final sortedDates =
-              groupedByDate.keys.toList()..sort((a, b) => b.compareTo(a));
+            final worklogDocs = snapshot.data?.docs ?? [];
 
-          final items = <_WorklogItem>[];
-          for (final dateKey in sortedDates) {
-            items.add(_WorklogItem.isHeader(dateKey));
-            for (final doc in groupedByDate[dateKey]!) {
-              items.add(_WorklogItem.isEntry(doc));
+            if (worklogDocs.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Még nincsenek munkanapló bejegyzések',
+                  style: TextStyle(fontSize: 16),
+                ),
+              );
             }
-          }
 
-          final employeeIds =
-              worklogDocs
-                  .map(
-                    (d) =>
-                        (d.data()['employeeId'] ??
-                                d.data()['employeeName'] ??
-                                '')
-                            as String,
-                  )
-                  .where((s) => s.isNotEmpty)
-                  .toSet()
-                  .toList();
+            final groupedByDate =
+                <String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>{};
 
-          return FutureBuilder<Map<String, String>>(
-            future: EmployeeNameService.getEmployeeNames(employeeIds),
-            builder: (context, nameSnap) {
-              final employeeNames = nameSnap.data ?? {};
-              return ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
+            for (final doc in worklogDocs) {
+              final data = doc.data();
+              final date = data['date'] as Timestamp?;
+              if (date != null) {
+                final dateKey = _getDateKey(date.toDate());
+                groupedByDate.putIfAbsent(dateKey, () => []).add(doc);
+              }
+            }
 
-                  if (item.isHeader) {
-                    final dateParts = item.dateKey!.split('-');
-                    final formattedDate =
-                        '${dateParts[0]}. ${dateParts[1]}. ${dateParts[2]}.';
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                        horizontal: 16,
-                      ),
-                      child: Text(
-                        formattedDate,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+            final sortedDates =
+                groupedByDate.keys.toList()..sort((a, b) => b.compareTo(a));
+
+            final items = <_WorklogItem>[];
+            for (final dateKey in sortedDates) {
+              items.add(_WorklogItem.isHeader(dateKey));
+              for (final doc in groupedByDate[dateKey]!) {
+                items.add(_WorklogItem.isEntry(doc));
+              }
+            }
+
+            final employeeIds =
+                worklogDocs
+                    .map(
+                      (d) =>
+                          (d.data()['employeeId'] ??
+                                  d.data()['employeeName'] ??
+                                  '')
+                              as String,
+                    )
+                    .where((s) => s.isNotEmpty)
+                    .toSet()
+                    .toList();
+
+            return FutureBuilder<Map<String, String>>(
+              future: EmployeeNameService.getEmployeeNames(employeeIds),
+              builder: (context, nameSnap) {
+                final employeeNames = nameSnap.data ?? {};
+                return ListView.separated(
+                  separatorBuilder:
+                      (_, __) => const Divider(thickness: 1, height: 0),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+
+                    if (item.isHeader) {
+                      final dateParts = item.dateKey!.split('-');
+                      final formattedDate =
+                          '${dateParts[0]}. ${dateParts[1]}. ${dateParts[2]}.';
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                      ),
-                    );
-                  }
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainer,
+                        ),
+                        child: Text(
+                          formattedDate,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      );
+                    }
 
-                  final doc = item.doc!;
-                  final data = doc.data();
+                    final doc = item.doc!;
+                    final data = doc.data();
 
-                  final employeeId =
-                      data['employeeId'] ?? data['employeeName'] ?? '';
-                  final employeeName;
-                  final startTime = data['startTime'] as Timestamp?;
-                  final endTime = data['endTime'] as Timestamp?;
-                  final breakMinutes = data['breakMinutes'] as int? ?? 0;
-                  final date = data['date'] as Timestamp?;
-                  final description = data['description'] as String? ?? '';
-                  final worklogViewItem = WorklogItemModel(
-                    id: doc.id,
-                    employeeName:
+                    final employeeId =
+                        data['employeeId'] ?? data['employeeName'] ?? '';
+                    final employeeName =
                         employeeId.isEmpty
                             ? 'Ismeretlen'
-                            : (employeeNames[employeeId] ?? employeeId),
-                    employeeId: employeeId,
-                    date: date?.toDate() ?? DateTime.now(),
-                    workedMinutes:
-                        startTime
-                            ?.toDate()
-                            .difference(endTime?.toDate() ?? DateTime.now())
-                            .inMinutes ??
-                        0,
-                    startTime: startTime?.toDate() ?? DateTime.now(),
-                    endTime: endTime?.toDate() ?? DateTime.now(),
-                    breakMinutes: breakMinutes,
-                    description: description,
-                  );
+                            : (employeeNames[employeeId]);
+                    final startTime = data['startTime'] as Timestamp?;
+                    final endTime = data['endTime'] as Timestamp?;
+                    final breakMinutes = data['breakMinutes'] as int? ?? 0;
+                    final date = data['date'] as Timestamp?;
+                    final description = data['description'] as String? ?? '';
+                    final worklogViewItem = WorklogItemModel(
+                      id: doc.id,
+                      employeeName: employeeName,
+                      employeeId: employeeId,
+                      date: date?.toDate() ?? DateTime.now(),
+                      workedMinutes:
+                          startTime
+                              ?.toDate()
+                              .difference(endTime?.toDate() ?? DateTime.now())
+                              .inMinutes ??
+                          0,
+                      startTime: startTime?.toDate() ?? DateTime.now(),
+                      endTime: endTime?.toDate() ?? DateTime.now(),
+                      breakMinutes: breakMinutes,
+                      description: description,
+                    );
 
-                  return WorklogEntryTile(
-                    item: worklogViewItem,
-                    onTap:
-                        () => showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder:
-                              (context) =>
-                                  EditWorklogBottomSheet(item: worklogViewItem),
-                        ),
-                  );
-                },
-              );
-            },
-          );
-        },
+                    return WorklogEntryTile(
+                      item: worklogViewItem,
+                      onTap:
+                          () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder:
+                                (context) => EditWorklogBottomSheet(
+                                  item: worklogViewItem,
+                                ),
+                          ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

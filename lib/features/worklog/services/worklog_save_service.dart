@@ -113,8 +113,8 @@ class WorklogSaveService {
     }
 
     try {
-      final updateData = itemToSave.toMap()
-        ..['updatedAt'] = FieldValue.serverTimestamp();
+      final updateData =
+          itemToSave.toMap()..['updatedAt'] = FieldValue.serverTimestamp();
       await workspaceRef.collection('worklogs').doc(item.id).update(updateData);
       await workspaceRef.update({'updatedAt': FieldValue.serverTimestamp()});
       return const WorklogSaveSuccess();
@@ -135,11 +135,12 @@ class WorklogSaveService {
     String employeeId,
     DateTime dateOnly,
   ) async {
-    final snapshot = await workspaceRef
-        .collection('worklogs')
-        .where('employeeId', isEqualTo: employeeId)
-        .where('date', isEqualTo: dateOnly)
-        .get();
+    final snapshot =
+        await workspaceRef
+            .collection('worklogs')
+            .where('employeeId', isEqualTo: employeeId)
+            .where('date', isEqualTo: dateOnly)
+            .get();
 
     return snapshot.docs
         .map((doc) => WorklogItemModel.fromMap(doc.data(), doc.id))
@@ -155,6 +156,11 @@ class WorklogSaveService {
   }) {
     for (final log in existing) {
       if (excludeDocumentId != null && log.id == excludeDocumentId) {
+        continue;
+      }
+      // Ha csak érintkeznek (vég = másik kezdete), nem számít átfedésnek
+      if (newItem.endTime == log.startTime ||
+          newItem.startTime == log.endTime) {
         continue;
       }
       if (newItem.startTime.isBefore(log.endTime) &&
@@ -191,23 +197,24 @@ class WorklogSaveService {
   ) {
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ütközés észlelhető'),
-        content: Text(
-          'Ez az időpont ütközik egy meglévő bejegyzéssel (${conflict.description}). '
-          'Szeretnéd automatikusan módosítani a kezdési időpontot?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Mégse'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Ütközés észlelhető'),
+            content: Text(
+              'Ez az időpont ütközik egy meglévő bejegyzéssel (${conflict.description}). '
+              'Szeretnéd automatikusan módosítani a kezdési időpontot?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Mégse'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Automatikus vágás'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Automatikus vágás'),
-          ),
-        ],
-      ),
     );
   }
 }

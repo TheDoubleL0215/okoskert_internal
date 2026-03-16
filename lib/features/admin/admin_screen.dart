@@ -2,7 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:provider/provider.dart';
 import 'package:okoskert_internal/app/settings_screen.dart';
+import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/features/admin/collegues_management/view/colleagues_screen.dart';
 import 'package:okoskert_internal/features/admin/join_request/join_requests_page.dart';
 import 'package:okoskert_internal/features/admin/work_types_page.dart';
@@ -15,10 +18,19 @@ class AdminPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final wp = context.watch<WorkspaceProvider>();
     if (user == null) {
       return const Scaffold(
         body: Center(child: Text('Nincs bejelentkezett felhasználó')),
       );
+    }
+
+    if (wp.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final workspaceRef = wp.workspaceRef;
+    if (workspaceRef == null) {
+      return const Center(child: Text('Nincs munkatérhez rendelve'));
     }
 
     return Scaffold(
@@ -39,66 +51,37 @@ class AdminPage extends StatelessWidget {
           ),
         ],
       ),
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream:
-            FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .snapshots(),
-        builder: (context, userSnapshot) {
-          if (userSnapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<int?>(
+        future: UserService.getRole(),
+        builder: (context, roleSnapshot) {
+          if (roleSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          final role = roleSnapshot.data;
 
-          if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-            return const Center(child: Text('Felhasználó nem található'));
-          }
-
-          final userData = userSnapshot.data!.data();
-          final teamId = userData?['teamId'];
-
-          if (teamId == null || teamId == '') {
-            return const Center(child: Text('Nincs munkatérhez rendelve'));
-          }
-
-          // Keresünk egy workspace-t a teamId alapján
-          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream:
-                FirebaseFirestore.instance
-                    .collection('workspaces')
-                    .where('teamId', isEqualTo: teamId)
-                    .limit(1)
-                    .snapshots(),
+          return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            future: workspaceRef.get(),
             builder: (context, workspaceSnapshot) {
               if (workspaceSnapshot.connectionState ==
                   ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-
               if (!workspaceSnapshot.hasData ||
-                  workspaceSnapshot.data!.docs.isEmpty) {
+                  !workspaceSnapshot.data!.exists) {
                 return const Center(child: Text('Munkatér nem található'));
               }
-
-              final workspaceDoc = workspaceSnapshot.data!.docs.first;
-              final workspaceData = workspaceDoc.data();
+              final workspaceData = workspaceSnapshot.data!.data();
               final workspaceName =
-                  workspaceData['name'] as String? ?? 'Névtelen munkatér';
-              final workspaceTeamId =
-                  workspaceData['teamId'] as String? ?? teamId;
+                  workspaceData?['name'] as String? ?? 'Névtelen munkatér';
+              final workspaceTeamId = workspaceData?['teamId'] as String? ?? '';
 
-              // Lekérdezzük a joinRequests-et
               return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream:
-                    workspaceDoc.reference
-                        .collection('joinRequests')
-                        .snapshots(),
+                stream: workspaceRef.collection('joinRequests').snapshots(),
                 builder: (context, joinRequestsSnapshot) {
                   if (joinRequestsSnapshot.connectionState ==
                       ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
                   final joinRequests = joinRequestsSnapshot.data?.docs ?? [];
                   final hasPendingRequests = joinRequests.isNotEmpty;
 
@@ -215,18 +198,20 @@ class AdminPage extends StatelessWidget {
                           );
                         },
                       ),
-                      AdminMenuTile(
-                        icon: Icons.people,
-                        title: 'Munkatársak kezelése',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ColleaguesManagementPage(),
-                            ),
-                          );
-                        },
-                      ),
+                      if (role == 1)
+                        AdminMenuTile(
+                          icon: Icons.people,
+                          title: 'Munkatársak kezelése',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => ColleaguesManagementPage(),
+                              ),
+                            );
+                          },
+                        ),
                     ],
                   );
                 },

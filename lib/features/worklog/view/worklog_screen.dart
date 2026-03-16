@@ -147,10 +147,9 @@ class _WorklogView extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Theme.of(context).colorScheme.primary,
         label: const Text(
-          'Új munkaóra létrehozása',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Új bejegyzés hozzáadása',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         onPressed:
             () => Navigator.push(
@@ -159,7 +158,7 @@ class _WorklogView extends StatelessWidget {
                 builder: (context) => const CreateNewWorklogScreen(),
               ),
             ),
-        icon: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add),
       ),
     );
   }

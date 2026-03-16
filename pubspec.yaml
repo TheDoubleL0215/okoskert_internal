@@ -1,7 +1,7 @@
 name: okoskert_internal
 description: "An internal app for Okoskert"
 publish_to: 'none'
-version: 0.3.6
+version: 0.4.0
 
 environment:
   sdk: ^3.7.2
@@ -12,12 +12,15 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   firebase_core: ^4.2.1
+  open_filex: ^4.7.0
+  excel: ^4.0.6
   firebase_auth: ^6.1.2
   cloud_firestore: ^6.1.0
   flutter_expandable_fab: ^2.5.2
   maps_launcher: ^3.0.0+1
   url_launcher: ^6.3.2
   firebase_storage: ^13.0.4
+  http: ^1.2.2
   image_picker: ^1.2.1
   insta_image_viewer: ^1.0.4
   cached_network_image: ^3.4.1
@@ -30,6 +33,7 @@ dependencies:
   toastification: ^3.0.3
   provider:
   slide_to_act: ^2.0.2
+  rename_app: ^1.6.5
 
 dev_dependencies:
   flutter_test:

@@ -50,8 +50,9 @@ class _ColleagueEditSalaryBottomSheetState
       await _viewModel.saveSalary(salary);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Fizetés sikeresen mentve')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fizetés sikeresen mentve')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,9 +118,10 @@ class _ColleagueEditSalaryBottomSheetState
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      onPressed: _viewModel.isSaving
-                          ? null
-                          : () => Navigator.of(context).pop(),
+                      onPressed:
+                          _viewModel.isSaving
+                              ? null
+                              : () => Navigator.of(context).pop(),
                       child: const Text('Mégse'),
                     ),
                   ),
@@ -129,10 +131,9 @@ class _ColleagueEditSalaryBottomSheetState
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      onPressed: _viewModel.isSaving
-                          ? null
-                          : _saveSalary,
-                      child: _viewModel.isSaving
+                      onPressed: _viewModel.isSaving ? null : _saveSalary,
+                      child:
+                          _viewModel.isSaving
                               ? const SizedBox(
                                 width: 18,
                                 height: 18,

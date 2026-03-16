@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:okoskert_internal/core/utils/services/machine_work_hours_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 
 class CreateMachineScreen extends StatefulWidget {
@@ -12,9 +11,13 @@ class CreateMachineScreen extends StatefulWidget {
 
 class _CreateMachineScreenState extends State<CreateMachineScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameFieldKey = GlobalKey<FormFieldState<String>>();
   final _nameController = TextEditingController();
   final _hoursController = TextEditingController();
   final _tmkMaintenanceHoursController = TextEditingController();
+
+  /// Ha már egyszer megnyomták a mentést, utána minden mezőn megjelennek a validációs hibák.
+  bool _didAttemptSubmit = false;
 
   // Karbantartások kezelése
   final List<Map<String, TextEditingController>> _maintenances = [];
@@ -46,6 +49,30 @@ class _CreateMachineScreenState extends State<CreateMachineScreen> {
     final hours = double.tryParse(_hoursController.text.trim()) ?? 0.0;
     final tmkMaintenanceHours =
         double.tryParse(_tmkMaintenanceHoursController.text.trim()) ?? 0.0;
+
+    if (tmkMaintenanceHours <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A TMK karbantartás gyakorisága nem lehet 0 vagy üres'),
+        ),
+      );
+      return;
+    }
+    for (var maintenance in _maintenances) {
+      final maintenanceHours =
+          double.tryParse(maintenance['hours']?.text.trim() ?? '0.0') ?? 0.0;
+
+      if (maintenanceHours <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'A karbantartás óránkénti értéke nem lehet 0 vagy negatív',
+            ),
+          ),
+        );
+        return; // This now correctly exits the entire _saveMachine function
+      }
+    }
     final maintenances =
         _maintenances
             .where(
@@ -105,6 +132,10 @@ class _CreateMachineScreenState extends State<CreateMachineScreen> {
       appBar: AppBar(title: const Text('Gép hozzáadása')),
       body: Form(
         key: _formKey,
+        autovalidateMode:
+            _didAttemptSubmit
+                ? AutovalidateMode.always
+                : AutovalidateMode.disabled,
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -112,6 +143,7 @@ class _CreateMachineScreenState extends State<CreateMachineScreen> {
               spacing: 16,
               children: [
                 TextFormField(
+                  key: _nameFieldKey,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Gép neve nem lehet üres';
@@ -242,8 +274,20 @@ class _CreateMachineScreenState extends State<CreateMachineScreen> {
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
           onPressed: () {
-            if (_formKey.currentState!.validate()) {
+            setState(() => _didAttemptSubmit = true);
+            final isValid = _formKey.currentState!.validate();
+            if (isValid) {
               _saveMachine();
+            } else {
+              // Görgetés az első mezőhöz, hogy látsódjon a hiba
+              final ctx = _nameFieldKey.currentContext;
+              if (ctx != null) {
+                Scrollable.ensureVisible(
+                  ctx,
+                  alignment: 0.1,
+                  duration: const Duration(milliseconds: 300),
+                );
+              }
             }
           },
           child: const Text('Gép mentése'),

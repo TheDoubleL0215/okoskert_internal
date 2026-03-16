@@ -1,13 +1,18 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/data/services/get_worklog_summary.dart';
 import 'package:okoskert_internal/features/projects/create_project/create_project_screen.dart';
 import 'package:okoskert_internal/features/projects/project_details/contact_details_section.dart';
 import 'package:okoskert_internal/features/projects/project_details/description_accordion.dart';
-import 'package:okoskert_internal/features/projects/project_details/project_data/ProjectDataScreen.dart';
 import 'package:okoskert_internal/features/projects/project_details/ui/ProjectStatusChip.dart';
 import 'package:okoskert_internal/features/warehouse/ui/material_details_bottom_sheet.dart';
+import 'package:open_filex/open_filex.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
   final String projectId;
@@ -226,7 +231,7 @@ class ProjectDetailsContent extends StatelessWidget {
               children: [
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: null,
+                  onPressed: () => _exportProjectData(context, projectId),
                   icon: const Icon(Icons.download),
                   label: const Text(
                     'Projekt adatainak exportálása',
@@ -240,6 +245,101 @@ class ProjectDetailsContent extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+const String _projectExportBaseUrl =
+    'https://us-central1-okoskert-dev.cloudfunctions.net/projectExport';
+
+Future<void> _exportProjectData(BuildContext context, String projectId) async {
+  if (!context.mounted) return;
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder:
+        (ctx) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Exportálás...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+  );
+
+  try {
+    final uri = Uri.parse(
+      _projectExportBaseUrl,
+    ).replace(queryParameters: {'projectId': projectId});
+    final response = await http.get(uri);
+
+    if (!context.mounted) return;
+    Navigator.of(context).pop(); // dismiss loading dialog
+
+    if (response.statusCode != 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exportálási hiba: ${response.statusCode}'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>?;
+    final fileName = body?['fileName'] as String?;
+    final storagePath = body?['storagePath'] as String?;
+
+    if (fileName == null || storagePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Érvénytelen válasz a szervertől')),
+      );
+      return;
+    }
+
+    final ref = FirebaseStorage.instance.ref(storagePath);
+    const maxSize = 50 * 1024 * 1024; // 50 MB
+    final data = await ref.getData(maxSize);
+    if (data == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A fájl letöltése sikertelen')),
+      );
+      return;
+    }
+
+    final tempDir = Directory.systemTemp;
+    final file = File('${tempDir.path}/$fileName');
+    await file.writeAsBytes(data);
+
+    if (!context.mounted) return;
+    final result = await OpenFilex.open(file.path);
+    if (result.type != ResultType.done) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fájl megnyitása: ${result.message}')),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Exportálás kész')));
+    }
+  } catch (e, st) {
+    debugPrint('Export error: $e $st');
+    if (!context.mounted) return;
+    Navigator.of(context).pop(); // dismiss loading if still open
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Hiba: $e'),
+        backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -324,6 +424,9 @@ class MaterialsSection extends StatelessWidget {
                 }
 
                 if (snapshot.hasError) {
+                  debugPrint(
+                    'Hiba történt az alapanyagok betöltésekor: ${snapshot.error}',
+                  );
                   return Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(

@@ -30,6 +30,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
   @override
   void initState() {
     super.initState();
+
     _selectedStartTime = widget.item.startTime;
     _selectedEndTime = widget.item.endTime;
     _selectedDate = widget.item.date;

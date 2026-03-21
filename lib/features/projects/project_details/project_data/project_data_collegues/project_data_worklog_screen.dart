@@ -197,10 +197,13 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
                     final breakMinutes = data['breakMinutes'] as int? ?? 0;
                     final date = data['date'] as Timestamp?;
                     final description = data['description'] as String? ?? '';
+                    final projectId =
+                        data['assignedProjectId'] as String? ?? '';
                     final worklogViewItem = WorklogItemModel(
                       id: doc.id,
                       employeeName: employeeName,
                       employeeId: employeeId,
+                      projectId: projectId,
                       date: date?.toDate() ?? DateTime.now(),
                       workedMinutes:
                           startTime

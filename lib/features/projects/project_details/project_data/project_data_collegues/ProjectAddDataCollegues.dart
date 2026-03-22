@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueTimeEntryWidget.dart';
+import 'package:flutter/material.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueTimeEntryWidget.dart';
 
 class ProjectAddDataCollegues extends StatefulWidget {
   final String projectId;
@@ -79,9 +79,29 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
     return DateTime(date.year, date.month, date.day, hour, minute);
   }
 
-  /// Elmenti a munkanapló bejegyzéseket Firestore-ba
+  List<String> _employeeIdsFromEntry(Map<String, dynamic> entry) {
+    final raw = entry['employeeIds'] as List?;
+    if (raw == null) return [];
+    return raw.map((e) => e.toString()).toList();
+  }
+
+  /// Érintő időpontok (pl. vége 12:00, másik kezdete 12:00) nem számítanak átfedésnek.
+  bool _intervalsOverlap(
+    DateTime startA,
+    DateTime endA,
+    DateTime startB,
+    DateTime endB,
+  ) {
+    return startA.isBefore(endB) && startB.isBefore(endA);
+  }
+
+  DateTime? _readFirestoreDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
+  }
+
   Future<void> _saveWorkLog() async {
-    // Validáció: ellenőrizzük, hogy vannak-e bejegyzések
     if (_timeEntries.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,20 +110,19 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
       return;
     }
 
-    // Validáció: ellenőrizzük, hogy minden bejegyzés teljes-e
     for (var i = 0; i < _timeEntries.length; i++) {
       final entry = _timeEntries[i];
-
       final startTimeString = entry['startTime'] as String?;
       final endTimeString = entry['endTime'] as String?;
       final breakMinutes = entry['breakMinutes'] as int? ?? 0;
+      final employeeIds = _employeeIdsFromEntry(entry);
 
-      if (entry['employeeId'] == null) {
+      if (employeeIds.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'A ${i + 1}. időbejegyzésben ninncs kiválasztott dolgozó!',
+              'A ${i + 1}. időbejegyzésben nincs kiválasztott dolgozó!',
             ),
           ),
         );
@@ -122,9 +141,21 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
         return;
       }
 
-      // Ellenőrizzük, ha a szünet hosszabb, mint a munkaidő
       final startDateTime = _parseTimeString(startTimeString, _selectedDate);
       final endDateTime = _parseTimeString(endTimeString, _selectedDate);
+
+      if (endDateTime.isBefore(startDateTime) ||
+          endDateTime.isAtSameMomentAs(startDateTime)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'A ${i + 1}. időbejegyzésnél a végidőnek későbbinek kell lennie a kezdőidőnél!',
+            ),
+          ),
+        );
+        return;
+      }
 
       final workDurationMinutes =
           endDateTime.difference(startDateTime).inMinutes;
@@ -138,6 +169,42 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
           ),
         );
         return;
+      }
+    }
+
+    for (var i = 0; i < _timeEntries.length; i++) {
+      final startA = _parseTimeString(
+        _timeEntries[i]['startTime'] as String,
+        _selectedDate,
+      );
+      final endA = _parseTimeString(
+        _timeEntries[i]['endTime'] as String,
+        _selectedDate,
+      );
+      final idsA = _employeeIdsFromEntry(_timeEntries[i]).toSet();
+      for (var j = i + 1; j < _timeEntries.length; j++) {
+        final idsB = _employeeIdsFromEntry(_timeEntries[j]).toSet();
+        if (!idsA.any(idsB.contains)) continue;
+        final startB = _parseTimeString(
+          _timeEntries[j]['startTime'] as String,
+          _selectedDate,
+        );
+        final endB = _parseTimeString(
+          _timeEntries[j]['endTime'] as String,
+          _selectedDate,
+        );
+        if (_intervalsOverlap(startA, endA, startB, endB)) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'A ${i + 1}. és a ${j + 1}. időbejegyzés átfedi egymás idejét '
+                'legalább egy közös dolgozónál.',
+              ),
+            ),
+          );
+          return;
+        }
       }
     }
 
@@ -167,55 +234,70 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
       return;
     }
 
-    // Validáció és mentés a workspace worklogs alkollekciójába történik.
     final worklogRef = workspaceQuery.docs.first.reference.collection(
       'worklogs',
     );
 
-    final targetDate = DateTime(
+    final plainDate = DateTime(
       _selectedDate.year,
       _selectedDate.month,
       _selectedDate.day,
     );
-    final targetDateTimestamp = Timestamp.fromDate(targetDate);
+    final targetDateTimestamp = Timestamp.fromDate(plainDate);
 
-    // Összegyűjtjük az összes létező rekordot
-    final recordsToDelete = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-    final conflictingEntries = <int, String>{}; // index -> employeeId
+    final recordsToDeleteById =
+        <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+    final conflictingEntryIndices = <int>{};
 
     for (var i = 0; i < _timeEntries.length; i++) {
       final entry = _timeEntries[i];
-      final employeeId = entry['employeeId'] as String?;
+      final newStart = _parseTimeString(
+        entry['startTime'] as String,
+        _selectedDate,
+      );
+      final newEnd = _parseTimeString(
+        entry['endTime'] as String,
+        _selectedDate,
+      );
 
-      if (employeeId == null) continue; // Ezt már ellenőriztük korábban
+      for (final employeeId in _employeeIdsFromEntry(entry)) {
+        if (employeeId.isEmpty) continue;
 
-      // Lekérdezzük, hogy létezik-e már rekord ezzel az employeeId-vel és dátummal
-      // A date mező Timestamp-ként van tárolva Firestore-ban
-      final existingRecords =
-          await worklogRef
-              .where('employeeId', isEqualTo: employeeId)
-              .where('date', isEqualTo: targetDateTimestamp)
-              .get();
+        final existing =
+            await worklogRef
+                .where('employeeId', isEqualTo: employeeId)
+                .where('date', isEqualTo: targetDateTimestamp)
+                .get();
 
-      if (existingRecords.docs.isNotEmpty) {
-        recordsToDelete.addAll(existingRecords.docs);
-        conflictingEntries[i] = employeeId;
+        for (final doc in existing.docs) {
+          final data = doc.data();
+          final pid = data['assignedProjectId'] as String?;
+          if (pid != widget.projectId) continue;
+
+          final exStart = _readFirestoreDateTime(data['startTime']);
+          final exEnd = _readFirestoreDateTime(data['endTime']);
+          if (exStart == null || exEnd == null) continue;
+
+          if (!_intervalsOverlap(newStart, newEnd, exStart, exEnd)) continue;
+
+          recordsToDeleteById[doc.id] = doc;
+          conflictingEntryIndices.add(i);
+        }
       }
     }
 
-    // Ha vannak ütköző rekordok, megkérdezzük a felhasználót
-    if (recordsToDelete.isNotEmpty) {
+    if (recordsToDeleteById.isNotEmpty) {
       if (!mounted) return;
 
       final shouldOverwrite = await showDialog<bool>(
         context: context,
         builder:
             (context) => AlertDialog(
-              title: const Text('Már létezik bejegyzés'),
+              title: const Text('Átfedő idősáv'),
               content: Text(
-                conflictingEntries.length == 1
-                    ? 'A ${conflictingEntries.keys.first + 1}. időbejegyzéshez kiválasztott dolgozóhoz (${conflictingEntries.values.first}) már létezik munkanapló bejegyzés a kiválasztott napon (${_formatDate(_selectedDate)}).\n\nSzeretnéd felülírni a meglévő bejegyzést?'
-                    : '${conflictingEntries.length} időbejegyzéshez már léteznek munkanapló bejegyzések a kiválasztott napon (${_formatDate(_selectedDate)}).\n\nSzeretnéd cserélni a meglévő bejegyzéseket?',
+                conflictingEntryIndices.length == 1
+                    ? 'A ${conflictingEntryIndices.first + 1}. időbejegyzéshez kiválasztott dolgozó(k)nak már van erre a napra, ebben a projektben olyan munkanapló sora, amelynek ideje átfedi az új idősávot (${_formatDate(_selectedDate)}).\n\nFelülírod az átfedő meglévő bejegyzéseket?'
+                    : 'Több időbejegyzéshez is található átfedő meglévő munkanapló sor ebben a projektben (${_formatDate(_selectedDate)}).\n\nFelülírod ezeket az átfedő bejegyzéseket?',
               ),
               actions: [
                 TextButton(
@@ -224,83 +306,56 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Csere'),
+                  child: const Text('Felülírás'),
                 ),
               ],
             ),
       );
 
       if (shouldOverwrite != true) {
-        return; // A felhasználó nem szeretné felülírni
+        return;
       }
     }
 
     try {
-      // Batch write a jobb teljesítményért
       final batch = FirebaseFirestore.instance.batch();
 
-      // Ha felülírásra kerül sor, töröljük a meglévő rekordokat
-      if (recordsToDelete.isNotEmpty) {
-        for (final doc in recordsToDelete) {
-          batch.delete(doc.reference);
-        }
+      for (final doc in recordsToDeleteById.values) {
+        batch.delete(doc.reference);
       }
 
       for (final entry in _timeEntries) {
-        final employeeId = entry['employeeId'] as String;
         final startTimeString = entry['startTime'] as String;
         final endTimeString = entry['endTime'] as String;
         final breakMinutes = entry['breakMinutes'] as int? ?? 0;
         final description = entry['description'] as String? ?? '';
 
-        // Parse-oljuk az időket és kombináljuk a dátummal
         final startDateTime = _parseTimeString(startTimeString, _selectedDate);
         final endDateTime = _parseTimeString(endTimeString, _selectedDate);
 
-        // Ellenőrizzük, hogy a végidő későbbi legyen, mint a kezdőidő
-        if (endDateTime.isBefore(startDateTime) ||
-            endDateTime.isAtSameMomentAs(startDateTime)) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'A végidőnek későbbinek kell lennie, mint a kezdőidő',
-              ),
-            ),
-          );
-          return;
+        for (final employeeId in _employeeIdsFromEntry(entry).toSet()) {
+          if (employeeId.isEmpty) continue;
+
+          final docRef = worklogRef.doc();
+          batch.set(docRef, {
+            'employeeId': employeeId,
+            'startTime': startDateTime,
+            'endTime': endDateTime,
+            'breakMinutes': breakMinutes,
+            'date': plainDate,
+            'assignedProjectId': widget.projectId,
+            'createdAt': FieldValue.serverTimestamp(),
+            'description': description,
+          });
         }
-
-        // Új dokumentum referencia a worklog alcollekcióban
-        final docRef = worklogRef.doc();
-
-        // Adatok összeállítása
-        final workLogData = {
-          'employeeId': employeeId,
-          'startTime':
-              startDateTime, // Firestore automatikusan Timestamp-ekké konvertálja
-          'endTime':
-              endDateTime, // Firestore automatikusan Timestamp-ekké konvertálja
-          'breakMinutes': breakMinutes,
-          'date': DateTime(
-            _selectedDate.year,
-            _selectedDate.month,
-            _selectedDate.day,
-          ), // Dátum is timestamp-ként mentve (éjfél)
-          "assignedProjectId": widget.projectId,
-          'createdAt': FieldValue.serverTimestamp(), // Létrehozás ideje
-          'description': description,
-        };
-
-        batch.set(docRef, workLogData);
       }
+
+      await batch.commit();
 
       await FirebaseFirestore.instance
           .collection('projects')
           .doc(widget.projectId)
           .update({'updatedAt': FieldValue.serverTimestamp()});
-      // Batch commit
-      await batch.commit();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -308,8 +363,6 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
           content: Text('Munkanapló bejegyzések sikeresen elmentve'),
         ),
       );
-
-      // Vissza a projekt részletek képernyőre
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;

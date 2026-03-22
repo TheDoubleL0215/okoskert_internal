@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/features/worklog/models/worklog_item_model.dart';
@@ -70,42 +71,117 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
 
   Future<void> _selectStartTime() async {
     if (!mounted) return;
-    final TimeOfDay? timePicked = await showTimePicker(
+
+    await showModalBottomSheet(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedStartTime),
-    );
-    if (timePicked != null && mounted) {
-      setState(() {
-        _selectedStartTime = DateTime(
-          _selectedStartTime.year,
-          _selectedStartTime.month,
-          _selectedStartTime.day,
-          timePicked.hour,
-          timePicked.minute,
+      builder: (context) {
+        DateTime tempPicked = _selectedStartTime;
+
+        return SizedBox(
+          height: 300,
+          child: Column(
+            children: [
+              // Top bar (Cancel / Done)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: const Text('Mégse'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  CupertinoButton(
+                    child: const Text('Kész'),
+                    onPressed: () {
+                      setState(() {
+                        _selectedStartTime = DateTime(
+                          _selectedStartTime.year,
+                          _selectedStartTime.month,
+                          _selectedStartTime.day,
+                          tempPicked.hour,
+                          tempPicked.minute,
+                        );
+                        _startTimeController.text = _formatTimeOnly(
+                          _selectedStartTime,
+                        );
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+
+              Expanded(
+                child: CupertinoDatePicker(
+                  minuteInterval: 5,
+                  mode: CupertinoDatePickerMode.time,
+                  initialDateTime: _selectedStartTime,
+                  use24hFormat: true,
+                  onDateTimeChanged: (DateTime newTime) {
+                    tempPicked = newTime;
+                  },
+                ),
+              ),
+            ],
+          ),
         );
-        _startTimeController.text = _formatTimeOnly(_selectedStartTime);
-      });
-    }
+      },
+    );
   }
 
   Future<void> _selectEndTime() async {
     if (!mounted) return;
-    final TimeOfDay? timePicked = await showTimePicker(
+
+    await showModalBottomSheet(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedEndTime),
-    );
-    if (timePicked != null && mounted) {
-      setState(() {
-        _selectedEndTime = DateTime(
-          _selectedEndTime.year,
-          _selectedEndTime.month,
-          _selectedEndTime.day,
-          timePicked.hour,
-          timePicked.minute,
+      builder: (context) {
+        DateTime tempPicked = _selectedEndTime;
+
+        return SizedBox(
+          height: 300,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: const Text('Mégse'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  CupertinoButton(
+                    child: const Text('Kész'),
+                    onPressed: () {
+                      setState(() {
+                        _selectedEndTime = DateTime(
+                          _selectedEndTime.year,
+                          _selectedEndTime.month,
+                          _selectedEndTime.day,
+                          tempPicked.hour,
+                          tempPicked.minute,
+                        );
+                        _endTimeController.text = _formatTimeOnly(
+                          _selectedEndTime,
+                        );
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  initialDateTime: _selectedEndTime,
+                  use24hFormat: true,
+                  onDateTimeChanged: (DateTime newTime) {
+                    tempPicked = newTime;
+                  },
+                ),
+              ),
+            ],
+          ),
         );
-        _endTimeController.text = _formatTimeOnly(_selectedEndTime);
-      });
-    }
+      },
+    );
   }
 
   Future<void> _selectDate() async {

@@ -16,6 +16,8 @@ class EventDetailsBottomSheet extends StatelessWidget {
   ) async {
     final date = event['date'] as Timestamp?;
     final eventDate = date?.toDate();
+    final endDateTs = event['endDate'] as Timestamp?;
+    final eventEndDate = endDateTs?.toDate();
 
     final assignedEmployees =
         (event['assignedEmployees'] as List?)
@@ -79,6 +81,7 @@ class EventDetailsBottomSheet extends StatelessWidget {
           (context) => _EventDetailsContent(
             event: event,
             eventDate: eventDate,
+            eventEndDate: eventEndDate,
             relevantEmployees: relevantEmployees,
             relevantProjects: relevantProjects,
           ),
@@ -98,12 +101,14 @@ class EventDetailsBottomSheet extends StatelessWidget {
 class _EventDetailsContent extends StatefulWidget {
   final Map<String, dynamic> event;
   final DateTime? eventDate;
+  final DateTime? eventEndDate;
   final List<Map<String, dynamic>> relevantEmployees;
   final List<Map<String, dynamic>> relevantProjects;
 
   const _EventDetailsContent({
     required this.event,
     this.eventDate,
+    this.eventEndDate,
     required this.relevantEmployees,
     required this.relevantProjects,
   });
@@ -123,6 +128,25 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
             ?.map((e) => Map<String, dynamic>.from(e as Map))
             .toList() ??
         [];
+  }
+
+  String? _dateLineForDisplay() {
+    final start = widget.eventDate;
+    if (start == null) return null;
+    final s = DateTime(start.year, start.month, start.day);
+    final endRaw = widget.eventEndDate;
+    final e =
+        endRaw != null
+            ? DateTime(endRaw.year, endRaw.month, endRaw.day)
+            : s;
+
+    String fmt(DateTime d) =>
+        '${d.year}. ${d.month.toString().padLeft(2, '0')}. ${d.day.toString().padLeft(2, '0')}.';
+
+    if (s.year == e.year && s.month == e.month && s.day == e.day) {
+      return fmt(s);
+    }
+    return '${fmt(s)} – ${fmt(e)}';
   }
 
   Widget _buildSubtasksList(BuildContext context) {
@@ -198,6 +222,8 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
     final date = widget.event['date'] as Timestamp?;
     final eventDate = date?.toDate();
     final selectedDate = eventDate ?? DateTime.now();
+    final endTs = widget.event['endDate'] as Timestamp?;
+    final initialEndDate = endTs?.toDate();
 
     final assignedEmployees =
         (widget.event['assignedEmployees'] as List?)
@@ -221,6 +247,7 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
             (context) => AddCalendarPostScreen(
               initialSubtasks: subtasksToPass,
               selectedDate: selectedDate,
+              initialEndDate: initialEndDate,
               eventId: widget.event['id'],
               initialType: widget.event['type'],
               initialDescription: widget.event['description'],
@@ -291,6 +318,8 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
       }
     }
 
+    final dateLine = _dateLineForDisplay();
+
     return Container(
       padding: const EdgeInsets.all(24),
       constraints: BoxConstraints(
@@ -337,7 +366,7 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.eventDate != null) ...[
+                  if (dateLine != null) ...[
                     Row(
                       children: [
                         Icon(
@@ -346,9 +375,11 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          '${widget.eventDate!.year}. ${widget.eventDate!.month.toString().padLeft(2, '0')}. ${widget.eventDate!.day.toString().padLeft(2, '0')}.',
-                          style: Theme.of(context).textTheme.bodyLarge,
+                        Expanded(
+                          child: Text(
+                            dateLine,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
                         ),
                       ],
                     ),

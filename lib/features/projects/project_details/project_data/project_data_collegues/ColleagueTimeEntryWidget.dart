@@ -1,5 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/core/utils/services/employee_service.dart';
+import 'package:okoskert_internal/features/calendar/ui/employee_selection_bottom_sheet.dart';
+import 'package:okoskert_internal/features/calendar/ui/selected_employees_section.dart';
 
 class ColleagueTimeEntryWidget extends StatefulWidget {
   final Function(Map<String, dynamic>)? onChanged;
@@ -12,7 +15,9 @@ class ColleagueTimeEntryWidget extends StatefulWidget {
 }
 
 class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
-  String? _selectedEmployeeId;
+  static const int _pickerMinuteInterval = 5;
+
+  final List<String> _selectedEmployeeIds = [];
   List<Map<String, dynamic>> _employees = [];
   bool _isLoading = true;
   TimeOfDay? _startTime;
@@ -64,11 +69,96 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
     }
   }
 
+  static DateTime _timeOfDayToPickerDateTime(TimeOfDay t) {
+    return DateTime(2000, 1, 1, t.hour, t.minute);
+  }
+
+  static TimeOfDay _pickerDateTimeToTimeOfDay(DateTime dt) {
+    return TimeOfDay(hour: dt.hour, minute: dt.minute);
+  }
+
+  /// [CupertinoDatePicker] megköveteli, hogy `initialDateTime.minute % minuteInterval == 0`.
+  static DateTime _snapToMinuteInterval(DateTime t, int intervalMinutes) {
+    final totalMinutes = t.hour * 60 + t.minute;
+    var snapped =
+        ((totalMinutes + intervalMinutes ~/ 2) ~/ intervalMinutes) *
+        intervalMinutes;
+    final maxSnapped = 24 * 60 - intervalMinutes;
+    if (snapped > maxSnapped) snapped = maxSnapped;
+    return DateTime(t.year, t.month, t.day, snapped ~/ 60, snapped % 60);
+  }
+
+  Future<TimeOfDay?> _showCupertinoTimePicker(TimeOfDay initial) async {
+    var selected = _snapToMinuteInterval(
+      _timeOfDayToPickerDateTime(initial),
+      _pickerMinuteInterval,
+    );
+
+    return showCupertinoModalPopup<TimeOfDay?>(
+      context: context,
+      builder: (BuildContext ctx) {
+        final bottom = MediaQuery.paddingOf(ctx).bottom;
+        return Container(
+          padding: EdgeInsets.only(bottom: bottom),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () {
+                      Navigator.pop(
+                        ctx,
+                        _pickerDateTimeToTimeOfDay(
+                          _timeOfDayToPickerDateTime(initial),
+                        ),
+                      );
+                    },
+                    child: const Text('Mégse'),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () {
+                      Navigator.pop(ctx, _pickerDateTimeToTimeOfDay(selected));
+                    },
+                    child: const Text('Kész'),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 216,
+                child: CupertinoDatePicker(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  minuteInterval: _pickerMinuteInterval,
+                  mode: CupertinoDatePickerMode.time,
+                  use24hFormat: true,
+                  initialDateTime: selected,
+                  onDateTimeChanged: (DateTime dt) {
+                    selected = DateTime(2000, 1, 1, dt.hour, dt.minute);
+                    _pickerDateTimeToTimeOfDay(selected);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _selectStartTime() async {
     if (!mounted) return;
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _startTime ?? TimeOfDay.now(),
+    final picked = await _showCupertinoTimePicker(
+      _startTime ??
+          TimeOfDay.fromDateTime(
+            DateTime.now().subtract(const Duration(hours: 8)),
+          ),
     );
     if (picked != null && picked != _startTime && mounted) {
       setState(() {
@@ -81,10 +171,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
 
   Future<void> _selectEndTime() async {
     if (!mounted) return;
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _endTime ?? TimeOfDay.now(),
-    );
+    final picked = await _showCupertinoTimePicker(_endTime ?? TimeOfDay.now());
     if (picked != null && picked != _endTime && mounted) {
       setState(() {
         _endTime = picked;
@@ -99,9 +186,27 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
     widget.onChanged?.call(_getData());
   }
 
+  void _openEmployeePicker() {
+    if (_employees.isEmpty) return;
+    showEmployeeSelectionBottomSheet(
+      context: context,
+      availableEmployees: _employees,
+      initialSelectedIds: _selectedEmployeeIds.toSet(),
+      onSelectionChanged: (ids) {
+        if (!mounted) return;
+        setState(() {
+          _selectedEmployeeIds
+            ..clear()
+            ..addAll(ids);
+        });
+        _notifyChanged();
+      },
+    );
+  }
+
   Map<String, dynamic> _getData() {
     return {
-      'employeeId': _selectedEmployeeId,
+      'employeeIds': List<String>.from(_selectedEmployeeIds),
       'startTime':
           _startTime != null
               ? '${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}'
@@ -131,31 +236,15 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Dolgozó dropdown
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else if (_employees.isEmpty)
             const Text('Nincsenek elérhető dolgozók')
           else
-            DropdownButtonFormField<String>(
-              initialValue: _selectedEmployeeId,
-              decoration: const InputDecoration(
-                labelText: 'Dolgozó',
-                border: OutlineInputBorder(),
-              ),
-              items:
-                  _employees.map((employee) {
-                    final name = employee['name'] as String? ?? 'Névtelen';
-                    final id = employee['id'] as String? ?? '';
-                    return DropdownMenuItem(value: id, child: Text(name));
-                  }).toList(),
-              onChanged: (value) {
-                if (!mounted) return;
-                setState(() {
-                  _selectedEmployeeId = value;
-                });
-                _notifyChanged();
-              },
+            SelectedEmployeesSection(
+              availableEmployees: _employees,
+              assignedEmployeeIds: _selectedEmployeeIds,
+              onEditPressed: _openEmployeePicker,
             ),
           const SizedBox(height: 16),
           // Kezdés időválasztó

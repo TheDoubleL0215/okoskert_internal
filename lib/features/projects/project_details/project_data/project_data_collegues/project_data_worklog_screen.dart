@@ -19,6 +19,9 @@ class ProjectDataWorklogScreen extends StatefulWidget {
 }
 
 class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
+  /// Egyedi Hero-tag példányonként (TabBarView / több route miatt ne ütközzön).
+  final Object _fabHeroTag = Object();
+
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkspaceProvider>();
@@ -54,6 +57,7 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: _fabHeroTag,
         label: const Text(
           'Új bejegyzés hozzáadása',
           style: TextStyle(fontWeight: FontWeight.bold),

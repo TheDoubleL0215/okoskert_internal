@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/core/utils/services/employee_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:okoskert_internal/features/calendar/ui/employee_selection_bottom_sheet.dart';
+import 'package:okoskert_internal/features/calendar/ui/selected_employees_section.dart';
 
 class AddCalendarPostScreen extends StatefulWidget {
   final DateTime selectedDate;
@@ -14,6 +16,9 @@ class AddCalendarPostScreen extends StatefulWidget {
   final List<String>? initialAssignedEmployees;
   final List<String>? initialAssignedProjects;
   final List<Map<String, dynamic>>? initialSubtasks;
+
+  /// Ha hiányzik, egy napos esemény: [selectedDate] napja.
+  final DateTime? initialEndDate;
   const AddCalendarPostScreen({
     super.key,
     required this.selectedDate,
@@ -25,6 +30,7 @@ class AddCalendarPostScreen extends StatefulWidget {
     this.initialAssignedProjects,
     this.initialPriority,
     this.initialSubtasks,
+    this.initialEndDate,
   });
 
   @override
@@ -47,9 +53,28 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
   bool _isSaving = false;
   bool _isDeleting = false;
 
+  late DateTime _rangeStart;
+  late DateTime _rangeEnd;
+  late bool _isMultiDay;
+
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  static String _formatHuDate(DateTime d) =>
+      '${d.year}. ${d.month.toString().padLeft(2, '0')}. ${d.day.toString().padLeft(2, '0')}';
+
   @override
   void initState() {
     super.initState();
+    _rangeStart = _dateOnly(widget.selectedDate);
+    final initialEnd =
+        widget.initialEndDate != null
+            ? _dateOnly(widget.initialEndDate!)
+            : _rangeStart;
+    _rangeEnd = initialEnd.isBefore(_rangeStart) ? _rangeStart : initialEnd;
+    _isMultiDay =
+        _rangeStart.year != _rangeEnd.year ||
+        _rangeStart.month != _rangeEnd.month ||
+        _rangeStart.day != _rangeEnd.day;
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _descriptionController = TextEditingController(
       text: widget.initialDescription ?? '',
@@ -200,6 +225,95 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
     super.dispose();
   }
 
+  Future<void> _pickStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _rangeStart,
+      firstDate: DateTime(2010),
+      lastDate: DateTime(2030, 12, 31),
+      locale: const Locale('hu', 'HU'),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _rangeStart = _dateOnly(picked);
+      if (!_isMultiDay) {
+        _rangeEnd = _rangeStart;
+      } else if (_rangeEnd.isBefore(_rangeStart)) {
+        _rangeEnd = _rangeStart;
+      }
+    });
+  }
+
+  Future<void> _pickEndDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _rangeEnd.isBefore(_rangeStart) ? _rangeStart : _rangeEnd,
+      firstDate: _rangeStart,
+      lastDate: DateTime(2030, 12, 31),
+      locale: const Locale('hu', 'HU'),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _rangeEnd = _dateOnly(picked);
+    });
+  }
+
+  Widget _buildDateRangeSection() {
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Többnapos esemény'),
+          value: _isMultiDay,
+          onChanged: (value) {
+            setState(() {
+              _isMultiDay = value;
+              if (!value) {
+                _rangeEnd = _rangeStart;
+              }
+            });
+          },
+        ),
+        if (!_isMultiDay)
+          TextField(
+            readOnly: true,
+            controller: TextEditingController(text: _formatHuDate(_rangeStart)),
+            decoration: InputDecoration(labelText: 'Dátum'),
+            onTap: _pickStartDate,
+          )
+        else ...[
+          Row(
+            spacing: 8,
+            children: [
+              Expanded(
+                child: TextField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: _formatHuDate(_rangeStart),
+                  ),
+                  decoration: InputDecoration(labelText: 'Kezdő dátum'),
+                  onTap: _pickStartDate,
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: TextEditingController(
+                    text: _formatHuDate(_rangeEnd),
+                  ),
+                  decoration: InputDecoration(labelText: 'Záró dátum'),
+                  onTap: _pickEndDate,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -213,15 +327,11 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
       final title = _titleController.text.trim();
       final description = _descriptionController.text.trim();
       final teamId = await UserService.getTeamId();
+      final endForSave = _isMultiDay ? _rangeEnd : _rangeStart;
       final eventData = {
         'teamId': teamId,
-        'date': Timestamp.fromDate(
-          DateTime(
-            widget.selectedDate.year,
-            widget.selectedDate.month,
-            widget.selectedDate.day,
-          ),
-        ),
+        'date': Timestamp.fromDate(_rangeStart),
+        'endDate': Timestamp.fromDate(endForSave),
         'type': _selectedType,
         'title': title,
         'description': description,
@@ -485,255 +595,23 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
   }
 
   void _showAvailableEmployeesModal() {
-    final Set<String> selectedEmployeeIds = Set<String>.from(
-      _assignedEmployees.where((tag) {
-        // Ellenőrizzük, hogy a tag egy létező employee ID-e
-        return _availableEmployees.any((emp) => emp['id'] == tag);
-      }),
-    );
+    final initialIds =
+        _assignedEmployees
+            .where((tag) => _availableEmployees.any((emp) => emp['id'] == tag))
+            .toSet();
 
-    showModalBottomSheet(
+    showEmployeeSelectionBottomSheet(
       context: context,
-      isScrollControlled: true,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setModalState) => Container(
-                  padding: const EdgeInsets.all(24),
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Munkatársak kiválasztása',
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child:
-                            _availableEmployees.isEmpty
-                                ? const Center(
-                                  child: Text('Nincs elérhető munkatárs.'),
-                                )
-                                : GridView.builder(
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 3,
-                                        crossAxisSpacing: 16,
-                                        mainAxisSpacing: 16,
-                                        childAspectRatio: 0.75,
-                                      ),
-                                  itemCount: _availableEmployees.length,
-                                  itemBuilder: (context, index) {
-                                    final employee = _availableEmployees[index];
-                                    final employeeId = employee['id'] as String;
-                                    final employeeName =
-                                        (employee['name'] as String? ??
-                                                'Névtelen')
-                                            .trim();
-                                    final firstLetter =
-                                        employeeName.isNotEmpty
-                                            ? employeeName[0].toUpperCase()
-                                            : '?';
-                                    final isSelected = selectedEmployeeIds
-                                        .contains(employeeId);
-
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setModalState(() {
-                                          if (isSelected) {
-                                            selectedEmployeeIds.remove(
-                                              employeeId,
-                                            );
-                                          } else {
-                                            selectedEmployeeIds.add(employeeId);
-                                          }
-                                          setState(() {
-                                            // Eltávolítjuk azokat a tag-eket, amelyek employee ID-k voltak
-                                            _assignedEmployees.removeWhere((
-                                              tag,
-                                            ) {
-                                              return _availableEmployees.any(
-                                                (emp) => emp['id'] == tag,
-                                              );
-                                            });
-                                            // Hozzáadjuk a kiválasztott employee ID-kat
-                                            _assignedEmployees.addAll(
-                                              selectedEmployeeIds,
-                                            );
-                                          });
-                                        });
-                                      },
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Stack(
-                                            clipBehavior: Clip.none,
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 40,
-                                                backgroundColor:
-                                                    isSelected
-                                                        ? Theme.of(context)
-                                                            .colorScheme
-                                                            .primaryContainer
-                                                        : Theme.of(context)
-                                                            .colorScheme
-                                                            .surfaceVariant,
-                                                child: Text(
-                                                  firstLetter,
-                                                  style: TextStyle(
-                                                    fontSize: 24,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        isSelected
-                                                            ? Theme.of(context)
-                                                                .colorScheme
-                                                                .onPrimaryContainer
-                                                            : Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurfaceVariant,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (isSelected)
-                                                Positioned(
-                                                  right: -2,
-                                                  bottom: -2,
-                                                  child: CircleAvatar(
-                                                    backgroundColor:
-                                                        Theme.of(
-                                                          context,
-                                                        ).colorScheme.primary,
-                                                    radius: 10,
-                                                    child: Icon(
-                                                      Icons.check,
-                                                      size: 16,
-                                                      color:
-                                                          Theme.of(context)
-                                                              .colorScheme
-                                                              .onPrimary,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Flexible(
-                                            child: Text(
-                                              employeeName,
-                                              textAlign: TextAlign.center,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color:
-                                                    Theme.of(
-                                                      context,
-                                                    ).colorScheme.onSurface,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                      ),
-                    ],
-                  ),
-                ),
-          ),
-    );
-  }
-
-  Widget _buildSelectedEmployees() {
-    final selectedEmployees =
-        _availableEmployees.where((emp) {
-          return _assignedEmployees.contains(emp['id']);
-        }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Munkatársak', style: Theme.of(context).textTheme.titleMedium),
-            FilledButton.tonalIcon(
-              onPressed: _showAvailableEmployeesModal,
-              icon:
-                  _assignedEmployees.isEmpty
-                      ? const Icon(Icons.add, size: 20)
-                      : null,
-              label: Text(
-                _assignedEmployees.isEmpty ? 'Hozzárendelés' : 'Szerkesztés',
-              ),
-            ),
-          ],
-        ),
-        if (selectedEmployees.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children:
-                    selectedEmployees.map((employee) {
-                      final employeeName =
-                          (employee['name'] as String? ?? 'Névtelen').trim();
-                      final firstLetter =
-                          employeeName.isNotEmpty
-                              ? employeeName[0].toUpperCase()
-                              : '?';
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                              child: Text(
-                                firstLetter,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ],
+      availableEmployees: _availableEmployees,
+      initialSelectedIds: initialIds,
+      onSelectionChanged: (ids) {
+        setState(() {
+          _assignedEmployees.removeWhere((tag) {
+            return _availableEmployees.any((emp) => emp['id'] == tag);
+          });
+          _assignedEmployees.addAll(ids);
+        });
+      },
     );
   }
 
@@ -956,6 +834,7 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _buildDateRangeSection(),
                   TextFormField(
                     textCapitalization: TextCapitalization.sentences,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -980,6 +859,8 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                     },
                   ),
                   const Divider(),
+
+                  const Divider(),
                   TextFormField(
                     textCapitalization: TextCapitalization.sentences,
                     controller: _descriptionController,
@@ -997,7 +878,11 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                   const Divider(),
                   _buildProjectSelector(),
                   const Divider(),
-                  _buildSelectedEmployees(),
+                  SelectedEmployeesSection(
+                    availableEmployees: _availableEmployees,
+                    assignedEmployeeIds: _assignedEmployees,
+                    onEditPressed: _showAvailableEmployeesModal,
+                  ),
                   const Divider(),
                   _buildPrioritySelector(),
                   const Divider(),

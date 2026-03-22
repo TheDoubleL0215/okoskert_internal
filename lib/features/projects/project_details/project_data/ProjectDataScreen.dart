@@ -47,7 +47,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
           tabs: const [
             Tab(text: 'Munkaórák'),
             Tab(text: 'Alapanyagok'),
-            Tab(text: 'Képek'),
+            Tab(text: 'Napló'),
           ],
         ),
       ),

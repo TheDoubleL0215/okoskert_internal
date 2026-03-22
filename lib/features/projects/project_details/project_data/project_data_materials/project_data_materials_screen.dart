@@ -17,6 +17,8 @@ class ProjectDataMaterialsScreen extends StatefulWidget {
 
 class _ProjectDataMaterialsScreenState
     extends State<ProjectDataMaterialsScreen> {
+  final Object _fabHeroTag = Object();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,6 +66,7 @@ class _ProjectDataMaterialsScreenState
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: _fabHeroTag,
         label: const Text('Alapanyag hozzáadása'),
         onPressed: () {
           Navigator.push(

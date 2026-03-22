@@ -89,17 +89,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
               final Map<String, List<Map<String, dynamic>>> eventSource = {};
 
               if (snapshot.hasData) {
+                const maxSpanDays = 400;
                 for (final doc in snapshot.data!.docs) {
                   final data = doc.data();
                   final date = data['date'] as Timestamp?;
                   if (date == null) continue;
 
-                  final normalized = _normalizeDate(date.toDate());
-                  final key =
-                      '${normalized.year}-${normalized.month}-${normalized.day}';
+                  final start = _normalizeDate(date.toDate());
+                  final endTs = data['endDate'] as Timestamp?;
+                  final end =
+                      endTs != null ? _normalizeDate(endTs.toDate()) : start;
+                  final safeEnd = end.isBefore(start) ? start : end;
 
-                  eventSource.putIfAbsent(key, () => []);
-                  eventSource[key]!.add({'id': doc.id, ...data});
+                  var day = start;
+                  var count = 0;
+                  while (!day.isAfter(safeEnd) && count < maxSpanDays) {
+                    final key = '${day.year}-${day.month}-${day.day}';
+                    eventSource.putIfAbsent(key, () => []);
+                    eventSource[key]!.add({'id': doc.id, ...data});
+                    day = day.add(const Duration(days: 1));
+                    count++;
+                  }
                 }
               }
 

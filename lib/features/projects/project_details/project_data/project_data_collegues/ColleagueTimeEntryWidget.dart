@@ -294,6 +294,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
           // Leírás mező
           TextFormField(
             maxLines: 2,
+            textCapitalization: TextCapitalization.sentences,
             controller: _descriptionController,
             decoration: const InputDecoration(
               labelText: 'Leírás',

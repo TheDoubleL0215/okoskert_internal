@@ -73,7 +73,7 @@ class _AddColleagueScreenState extends State<AddColleagueScreen> {
                 labelText: 'Név',
                 border: OutlineInputBorder(),
               ),
-              textCapitalization: TextCapitalization.words,
+              textCapitalization: TextCapitalization.sentences,
               validator: (v) {
                 if ((v ?? '').trim().isEmpty) return 'Add meg a nevet';
                 return null;

@@ -171,6 +171,7 @@ class EditableChipFieldState extends State<EditableChipField> {
         // Text input field
         TextField(
           controller: _textController,
+          textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
             hintText: 'Add meg a projekt típusát',
             border: OutlineInputBorder(),

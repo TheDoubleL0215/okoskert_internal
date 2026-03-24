@@ -167,7 +167,6 @@ class _CreateMachineScreenState extends State<CreateMachineScreen> {
                     }
                     return null;
                   },
-                  textCapitalization: TextCapitalization.sentences,
                   keyboardType: TextInputType.number,
                   controller: _hoursController,
                   decoration: const InputDecoration(

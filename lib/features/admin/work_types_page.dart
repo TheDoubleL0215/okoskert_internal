@@ -107,7 +107,7 @@ class _WorkTypesPageState extends State<WorkTypesPage> {
                           decoration: const InputDecoration(
                             labelText: 'Új munkatípus',
                           ),
-                          textCapitalization: TextCapitalization.words,
+                          textCapitalization: TextCapitalization.sentences,
                           onSubmitted:
                               (_) => _addWorkType(workspaceDoc.reference),
                         ),

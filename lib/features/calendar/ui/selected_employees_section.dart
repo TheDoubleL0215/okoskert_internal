@@ -38,52 +38,53 @@ class SelectedEmployeesSection extends StatelessWidget {
             ),
           ],
         ),
-        if (selectedEmployees.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children:
-                    selectedEmployees.map((employee) {
-                      final employeeName =
-                          (employee['name'] as String? ?? 'Névtelen').trim();
-                      final firstLetter =
-                          employeeName.isNotEmpty
-                              ? employeeName[0].toUpperCase()
-                              : '?';
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                              child: Text(
-                                firstLetter,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                                ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          clipBehavior: Clip.hardEdge,
+          child:
+              selectedEmployees.isEmpty
+                  ? const SizedBox.shrink()
+                  : Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
+                    child: SizedBox(
+                      height: 48,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: selectedEmployees.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final employee = selectedEmployees[index];
+                          final employeeName =
+                              (employee['name'] as String? ?? 'Névtelen')
+                                  .trim();
+                          final firstLetter =
+                              employeeName.isNotEmpty
+                                  ? employeeName[0].toUpperCase()
+                                  : '?';
+                          return CircleAvatar(
+                            radius: 22,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primaryContainer,
+                            child: Text(
+                              firstLetter,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-              ),
-            ),
-          ),
-        ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+        ),
       ],
     );
   }

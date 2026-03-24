@@ -256,102 +256,105 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
             },
           ),
         ),
-        Material(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          elevation: 8,
-          color: colorScheme.surfaceContainerHighest,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 🔹 Attachments (top)
-                  if (_attachments.isNotEmpty) ...[
-                    SizedBox(
-                      height: 88,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _attachments.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (context, index) {
-                          final file = _attachments[index];
-                          return _AttachmentThumb(
-                            file: file,
-                            onRemove: () => _removeAttachment(index),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // 🔹 Text input (full width, dominant)
-                  TextField(
-                    controller: _textController,
-                    focusNode: _textFocusNode,
-                    minLines: 1,
-                    maxLines: 6,
-                    enabled: !_isSending,
-                    textCapitalization:
-                        TextCapitalization
-                            .sentences, // 👈 bigger like screenshot
-                    decoration: InputDecoration(
-                      hintText: 'Poszt szövege…',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                    ),
-                  ),
-
-                  // 🔹 Bottom row (actions + send)
-                  Row(
-                    children: [
-                      // LEFT SIDE ACTIONS
-                      IconButton(
-                        onPressed: _isSending ? null : _pickImages,
-                        icon: const Icon(LucideIcons.imagePlus, size: 28),
-                      ),
-
-                      const Spacer(),
-
-                      // Send button (circular)
-                      InkWell(
-                        onTap: _isSending ? null : _send,
-                        borderRadius: BorderRadius.circular(28),
-                        child: Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colorScheme.primaryContainer,
-                          ),
-                          child: Center(
-                            child:
-                                _isSending
-                                    ? SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: colorScheme.primary,
-                                      ),
-                                    )
-                                    : const Icon(Icons.send_rounded, size: 24),
-                          ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Material(
+            borderRadius: BorderRadius.all(Radius.circular(24)),
+            elevation: 8,
+            color: colorScheme.surfaceContainerHighest,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 🔹 Attachments (top)
+                    if (_attachments.isNotEmpty) ...[
+                      SizedBox(
+                        height: 88,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _attachments.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final file = _attachments[index];
+                            return _AttachmentThumb(
+                              file: file,
+                              onRemove: () => _removeAttachment(index),
+                            );
+                          },
                         ),
                       ),
+                      const SizedBox(height: 12),
                     ],
-                  ),
-                ],
+
+                    // 🔹 Text input (full width, dominant)
+                    TextField(
+                      controller: _textController,
+                      focusNode: _textFocusNode,
+                      minLines: 1,
+                      maxLines: 6,
+                      enabled: !_isSending,
+                      textCapitalization:
+                          TextCapitalization
+                              .sentences, // 👈 bigger like screenshot
+                      decoration: InputDecoration(
+                        hintText: 'Poszt szövege…',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                      ),
+                    ),
+
+                    // 🔹 Bottom row (actions + send)
+                    Row(
+                      children: [
+                        // LEFT SIDE ACTIONS
+                        IconButton(
+                          onPressed: _isSending ? null : _pickImages,
+                          icon: const Icon(LucideIcons.imagePlus, size: 28),
+                        ),
+
+                        const Spacer(),
+
+                        // Send button (circular)
+                        InkWell(
+                          onTap: _isSending ? null : _send,
+                          borderRadius: BorderRadius.circular(28),
+                          child: Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colorScheme.primaryContainer,
+                            ),
+                            child: Center(
+                              child:
+                                  _isSending
+                                      ? SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: colorScheme.primary,
+                                        ),
+                                      )
+                                      : const Icon(
+                                        Icons.send_rounded,
+                                        size: 24,
+                                      ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

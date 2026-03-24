@@ -108,7 +108,7 @@ class _CreateNewWorkspaceScreenState extends State<CreateNewWorkspaceScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     labelText: 'Munkahely neve',
                     hintText: 'Add meg a munkahely nevét',
@@ -126,7 +126,7 @@ class _CreateNewWorkspaceScreenState extends State<CreateNewWorkspaceScreen> {
                 TextFormField(
                   controller: _addressController,
                   keyboardType: TextInputType.streetAddress,
-                  textCapitalization: TextCapitalization.words,
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     labelText: 'Munkahely címe',
                     hintText: 'Add meg a munkahely címét',

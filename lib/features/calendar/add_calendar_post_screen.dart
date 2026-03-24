@@ -766,6 +766,7 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                   ),
                   title: TextField(
                     controller: controller,
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
                       hintText: 'Részfeladat címe',
                       border: InputBorder.none,

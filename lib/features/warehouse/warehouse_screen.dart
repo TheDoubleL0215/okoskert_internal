@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/warehouse/add_material_screen.dart';
+import 'package:okoskert_internal/features/warehouse/material_group_by_day.dart';
 import 'package:okoskert_internal/features/warehouse/ui/material_details_bottom_sheet.dart';
 import 'package:okoskert_internal/features/warehouse/ui/material_list_tile.dart';
 
@@ -86,6 +87,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                   }
 
                   final materials = snapshot.data?.docs ?? [];
+                  final grouped = groupMaterialsByDay(materials);
+                  final sortedDays =
+                      grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
                   if (materials.isEmpty) {
                     return Center(
@@ -128,11 +132,31 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                     );
                   }
 
+                  final rows = <Object>[
+                    for (final day in sortedDays) ...[day, ...grouped[day]!],
+                  ];
+
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    itemCount: materials.length,
+                    itemCount: rows.length,
                     itemBuilder: (context, index) {
-                      final material = materials[index];
+                      final item = rows[index];
+                      if (item is DateTime) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
+                          child: Text(
+                            materialDaySectionTitle(item),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }
+                      final material =
+                          item as QueryDocumentSnapshot<Map<String, dynamic>>;
                       final data = material.data();
                       final name =
                           data['name'] as String? ?? 'Névtelen alapanyag';

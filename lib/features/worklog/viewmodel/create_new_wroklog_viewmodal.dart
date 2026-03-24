@@ -14,7 +14,7 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
   final WorkspaceProvider _workspaceProvider;
 
   List<Map<String, dynamic>> _employees = [];
-  String? _selectedEmployeeId;
+  final Set<String> _selectedEmployeeIds = <String>{};
   DateTime _date = DateTime.now();
   DateTime _startTime = DateTime.now();
   DateTime _endTime = DateTime.now().add(const Duration(hours: 1));
@@ -25,7 +25,7 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
   String? _error;
 
   List<Map<String, dynamic>> get employees => _employees;
-  String? get selectedEmployeeId => _selectedEmployeeId;
+  Set<String> get selectedEmployeeIds => _selectedEmployeeIds;
   DateTime get date => _date;
   DateTime get startTime => _startTime;
   DateTime get endTime => _endTime;
@@ -34,17 +34,6 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
   bool get isSaving => _isSaving;
   String? get error => _error;
 
-  /// Dolgozó megjelenített neve a kiválasztott id alapján.
-  String? get selectedEmployeeLabel {
-    if (_selectedEmployeeId == null) return null;
-    for (final e in _employees) {
-      if (e['id'] == _selectedEmployeeId) {
-        return (e['name'] ?? e['email'] ?? e['id'])?.toString();
-      }
-    }
-    return _selectedEmployeeId;
-  }
-
   Future<void> _loadEmployees() async {
     _isLoading = true;
     _error = null;
@@ -52,9 +41,6 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
 
     try {
       _employees = await EmployeeService.getEmployees();
-      if (_employees.isNotEmpty && _selectedEmployeeId == null) {
-        _selectedEmployeeId = _employees.first['id'] as String?;
-      }
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -70,8 +56,10 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
     _endTime = _startTime.add(const Duration(hours: 1));
   }
 
-  void setSelectedEmployeeId(String? id) {
-    _selectedEmployeeId = id;
+  void setSelectedEmployeeIds(Set<String> ids) {
+    _selectedEmployeeIds
+      ..clear()
+      ..addAll(ids);
     notifyListeners();
   }
 
@@ -109,10 +97,10 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Validáció: végidő legyen későbbi a kezdőidőnél, legyen kiválasztott dolgozó.
+  /// Validáció: végidő legyen későbbi a kezdőidőnél, legyen legalább egy dolgozó.
   String? validate() {
-    if (_selectedEmployeeId == null || _selectedEmployeeId!.isEmpty) {
-      return 'Válassz dolgozót.';
+    if (_selectedEmployeeIds.isEmpty) {
+      return 'Válassz legalább egy dolgozót.';
     }
     if (!_endTime.isAfter(_startTime)) {
       return 'A végidőnek későbbinek kell lennie a kezdőidőnél.';
@@ -142,34 +130,44 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
 
     try {
       final dateOnly = DateTime(_date.year, _date.month, _date.day);
-      final newItem = WorklogItemModel(
-        id: '',
-        employeeId: _selectedEmployeeId!,
-        description: _description.trim(),
-        date: dateOnly,
-        workedMinutes: _endTime.difference(_startTime).inMinutes,
-        startTime: _startTime,
-        endTime: _endTime,
-      );
+      final workedMinutes = _endTime.difference(_startTime).inMinutes;
+      final description = _description.trim();
 
-      final result = await WorklogSaveService.createWorklog(
-        workspaceRef: workspaceRef,
-        item: newItem,
-        context: context,
-      );
+      for (final employeeId in List<String>.from(_selectedEmployeeIds)) {
+        final newItem = WorklogItemModel(
+          id: '',
+          employeeId: employeeId,
+          description: description,
+          date: dateOnly,
+          workedMinutes: workedMinutes,
+          startTime: _startTime,
+          endTime: _endTime,
+        );
+
+        final result = await WorklogSaveService.createWorklog(
+          workspaceRef: workspaceRef,
+          item: newItem,
+          context: context,
+        );
+
+        switch (result) {
+          case WorklogSaveSuccess():
+            break;
+          case WorklogSaveFailure(:final message):
+            _error = message;
+            _isSaving = false;
+            notifyListeners();
+            return false;
+          case WorklogSaveCancelled():
+            _isSaving = false;
+            notifyListeners();
+            return false;
+        }
+      }
 
       _isSaving = false;
       notifyListeners();
-
-      switch (result) {
-        case WorklogSaveSuccess():
-          return true;
-        case WorklogSaveFailure(:final message):
-          _error = message;
-          return false;
-        case WorklogSaveCancelled():
-          return false;
-      }
+      return true;
     } catch (e) {
       _error = e.toString();
       _isSaving = false;

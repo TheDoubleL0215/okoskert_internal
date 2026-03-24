@@ -169,6 +169,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               ),
               Expanded(
                 child: CupertinoDatePicker(
+                  minuteInterval: 5,
                   mode: CupertinoDatePickerMode.time,
                   initialDateTime: _selectedEndTime,
                   use24hFormat: true,
@@ -433,6 +434,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               // Leírás mező
               TextFormField(
                 maxLines: 2,
+                textCapitalization: TextCapitalization.sentences,
                 controller: _descriptionController,
                 decoration: const InputDecoration(
                   labelText: 'Leírás',

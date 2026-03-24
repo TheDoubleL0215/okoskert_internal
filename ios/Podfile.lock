@@ -76,8 +76,6 @@ PODS:
   - Flutter (1.0.0)
   - flutter_localization (0.0.1):
     - Flutter
-  - gallery_view (0.0.1):
-    - Flutter
   - GoogleUtilities/AppDelegateSwizzler (8.1.0):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
@@ -133,7 +131,6 @@ DEPENDENCIES:
   - FirebaseFirestore (from `https://github.com/invertase/firestore-ios-sdk-frameworks.git`, tag `12.4.0`)
   - Flutter (from `Flutter`)
   - flutter_localization (from `.symlinks/plugins/flutter_localization/ios`)
-  - gallery_view (from `.symlinks/plugins/gallery_view/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - maps_launcher (from `.symlinks/plugins/maps_launcher/ios`)
   - open_filex (from `.symlinks/plugins/open_filex/ios`)
@@ -181,8 +178,6 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_localization:
     :path: ".symlinks/plugins/flutter_localization/ios"
-  gallery_view:
-    :path: ".symlinks/plugins/gallery_view/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   maps_launcher:
@@ -226,7 +221,6 @@ SPEC CHECKSUMS:
   FirebaseStorage: 20d6b56fb8a40ebaa03d6a2889fe33dac64adb73
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_localization: 72299fb6cb4e51cae587bd953ed0b958040b71e6
-  gallery_view: 207495699b1d240d494d0593d3aa8103c689afa7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMSessionFetcher: 02d6e866e90bc236f48a703a041dfe43e6221a29
   image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326

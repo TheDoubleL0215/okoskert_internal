@@ -34,15 +34,24 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
   final List<XFile> _attachments = [];
   bool _isSending = false;
 
+  /// Görgethető tartalom alsó paddingje, hogy ne takarja a lebegő szerkesztő.
+  static const double _kComposerScrollPadding = 280;
+
+  /// A bejegyzés naptári napja. Ha nem a mai nap: [createdAt] csak dátum (éjfél), idő nélkül.
+  late DateTime _postDate;
+
   /// Egy példány – ha minden [build]-ben új stream lenne, a billentyűzet (újrarajz)
   /// újrafeliratkozást okozna, és villogna / újratöltene a lista.
   late final Stream<_DiaryViewData> _diaryStreamWithAuthors;
 
   static final _dateFmt = DateFormat('yyyy. MM. dd. HH:mm', 'hu');
+  static final _postDateOnlyFmt = DateFormat('yyyy. MM. dd.', 'hu');
 
   @override
   void initState() {
     super.initState();
+    final n = DateTime.now();
+    _postDate = DateTime(n.year, n.month, n.day);
     _diaryStreamWithAuthors = FirebaseFirestore.instance
         .collection('projects')
         .doc(widget.projectId)
@@ -67,6 +76,30 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
     _textController.dispose();
     _textFocusNode.dispose();
     super.dispose();
+  }
+
+  DateTime _effectiveCreatedAt() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final chosenDay = DateTime(_postDate.year, _postDate.month, _postDate.day);
+    if (chosenDay == today) {
+      return now;
+    }
+    return chosenDay;
+  }
+
+  Future<void> _pickPostDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _postDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _postDate = DateTime(picked.year, picked.month, picked.day);
+      });
+    }
   }
 
   Future<void> _pickImages() async {
@@ -149,7 +182,7 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
       await diaryRef.set({
         'text': text,
         'imageUrls': imageUrls,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt': Timestamp.fromDate(_effectiveCreatedAt()),
         if (uid != null) 'authorUid': uid,
       });
 
@@ -160,7 +193,11 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
 
       if (!mounted) return;
       _textController.clear();
-      setState(() => _attachments.clear());
+      final today = DateTime.now();
+      setState(() {
+        _attachments.clear();
+        _postDate = DateTime(today.year, today.month, today.day);
+      });
       FocusScope.of(context).unfocus();
       ScaffoldMessenger.of(
         context,
@@ -179,9 +216,17 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
+    final scrollBottomPad =
+        16 +
+        _kComposerScrollPadding +
+        MediaQuery.viewPaddingOf(context).bottom +
+        MediaQuery.viewInsetsOf(context).bottom;
+
+    return Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
       children: [
-        Expanded(
+        Positioned.fill(
           child: StreamBuilder<_DiaryViewData>(
             stream: _diaryStreamWithAuthors,
             builder: (context, snapshot) {
@@ -191,7 +236,7 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
               if (snapshot.hasError) {
                 return Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, scrollBottomPad),
                     child: Text(
                       'Nem sikerült betölteni a naplót: ${snapshot.error}',
                       textAlign: TextAlign.center,
@@ -210,7 +255,7 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
                   onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.fromLTRB(24, 24, 24, scrollBottomPad),
                       child: Text(
                         'Még nincs bejegyzés.\n'
                         'Írj szöveget és csatolj képeket lent.',
@@ -228,7 +273,7 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
                 behavior: HitTestBehavior.opaque,
                 onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
                 child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, scrollBottomPad),
                   itemCount: docs.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
@@ -256,104 +301,123 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
             },
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Material(
-            borderRadius: BorderRadius.all(Radius.circular(24)),
-            elevation: 8,
-            color: colorScheme.surfaceContainerHighest,
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 🔹 Attachments (top)
-                    if (_attachments.isNotEmpty) ...[
-                      SizedBox(
-                        height: 88,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _attachments.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 8),
-                          itemBuilder: (context, index) {
-                            final file = _attachments[index];
-                            return _AttachmentThumb(
-                              file: file,
-                              onRemove: () => _removeAttachment(index),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-
-                    // 🔹 Text input (full width, dominant)
-                    TextField(
-                      controller: _textController,
-                      focusNode: _textFocusNode,
-                      minLines: 1,
-                      maxLines: 6,
-                      enabled: !_isSending,
-                      textCapitalization:
-                          TextCapitalization
-                              .sentences, // 👈 bigger like screenshot
-                      decoration: InputDecoration(
-                        hintText: 'Poszt szövege…',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        focusedErrorBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
-                      ),
-                    ),
-
-                    // 🔹 Bottom row (actions + send)
-                    Row(
-                      children: [
-                        // LEFT SIDE ACTIONS
-                        IconButton(
-                          onPressed: _isSending ? null : _pickImages,
-                          icon: const Icon(LucideIcons.imagePlus, size: 28),
-                        ),
-
-                        const Spacer(),
-
-                        // Send button (circular)
-                        InkWell(
-                          onTap: _isSending ? null : _send,
-                          borderRadius: BorderRadius.circular(28),
-                          child: Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: colorScheme.primaryContainer,
-                            ),
-                            child: Center(
-                              child:
-                                  _isSending
-                                      ? SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: colorScheme.primary,
-                                        ),
-                                      )
-                                      : const Icon(
-                                        Icons.send_rounded,
-                                        size: 24,
-                                      ),
-                            ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Material(
+              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              elevation: 8,
+              shadowColor: Colors.black26,
+              color: colorScheme.surfaceContainerHighest,
+              child: SafeArea(
+                top: false,
+                minimum: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_attachments.isNotEmpty) ...[
+                        SizedBox(
+                          height: 88,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _attachments.length,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(width: 8),
+                            itemBuilder: (context, index) {
+                              final file = _attachments[index];
+                              return _AttachmentThumb(
+                                file: file,
+                                onRemove: () => _removeAttachment(index),
+                              );
+                            },
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: Text(
+                          'Bejegyzés dátuma',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                        subtitle: Text(
+                          _postDateOnlyFmt.format(_postDate),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        leading: const Icon(LucideIcons.calendarDays, size: 22),
+                        onTap: _isSending ? null : _pickPostDate,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _textController,
+                        focusNode: _textFocusNode,
+                        minLines: 1,
+                        maxLines: 6,
+                        enabled: !_isSending,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          hintText: 'Poszt szövege…',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              padding: const EdgeInsets.all(8),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            onPressed: _isSending ? null : _pickImages,
+                            icon: const Icon(LucideIcons.imagePlus, size: 28),
+                          ),
+                          const Spacer(),
+                          InkWell(
+                            onTap: _isSending ? null : _send,
+                            borderRadius: BorderRadius.circular(28),
+                            child: Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: colorScheme.primaryContainer,
+                              ),
+                              child: Center(
+                                child:
+                                    _isSending
+                                        ? SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: colorScheme.primary,
+                                          ),
+                                        )
+                                        : const Icon(
+                                          Icons.send_rounded,
+                                          size: 24,
+                                        ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -372,6 +436,8 @@ class _DiaryPostCard extends StatelessWidget {
     required this.isOwnPost,
   });
 
+  static final _headerDateOnlyFmt = DateFormat('yyyy. MM. dd.', 'hu');
+
   final QueryDocumentSnapshot<Map<String, dynamic>> doc;
   final DateFormat dateFmt;
   final String authorName;
@@ -389,16 +455,19 @@ class _DiaryPostCard extends StatelessWidget {
     final created = data['createdAt'];
     String? dateLabel;
     if (created is Timestamp) {
-      dateLabel = dateFmt.format(created.toDate());
+      final d = created.toDate();
+      final startOfDay =
+          d.hour == 0 && d.minute == 0 && d.second == 0 && d.millisecond == 0;
+      dateLabel = startOfDay ? _headerDateOnlyFmt.format(d) : dateFmt.format(d);
     }
 
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
     return GestureDetector(
+      // Teljes kártya területén fusson a long press (ne csak ott, ahol van gyerek).
+      // onTap nincs: a galériát továbbra is csak a képek nyitják.
       behavior: HitTestBehavior.opaque,
-      onTap:
-          urls.isNotEmpty ? () => _openDiaryPhotoGallery(context, urls) : null,
       onLongPress:
           isOwnPost ? () => _confirmAndDeleteOwnDiaryPost(context, doc) : null,
       child: Card(
@@ -462,6 +531,9 @@ class _DiaryPostCard extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, i) {
                       final url = urls[i];
+                      final thumbPx =
+                          (112 * MediaQuery.devicePixelRatioOf(context))
+                              .round();
                       return GestureDetector(
                         onTap:
                             () => _openDiaryPhotoGallery(
@@ -471,13 +543,16 @@ class _DiaryPostCard extends StatelessWidget {
                             ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: AspectRatio(
-                            aspectRatio: 1,
+                          child: SizedBox(
+                            width: 112,
+                            height: 112,
                             child: CachedNetworkImage(
                               imageUrl: url,
+                              width: 112,
+                              height: 112,
                               fit: BoxFit.cover,
-                              memCacheWidth: 400,
-                              memCacheHeight: 400,
+                              alignment: Alignment.center,
+                              memCacheWidth: thumbPx,
                               progressIndicatorBuilder: (context, _, progress) {
                                 return ColoredBox(
                                   color: cs.surfaceContainerHighest,

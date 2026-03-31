@@ -101,7 +101,13 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
             child: SizedBox(
               width: double.infinity,
               child: SegmentedButton<int>(
+                showSelectedIcon: false,
                 style: ButtonStyle(
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   padding: WidgetStatePropertyAll(
                     EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                   ),
@@ -409,8 +415,8 @@ class _AddMachineWorklogBottomSheet extends StatefulWidget {
 
 class _AddMachineWorklogBottomSheetState
     extends State<_AddMachineWorklogBottomSheet> {
-  String? _selectedMachineId;
-  String? _selectedMachineName;
+  late final Future<String?> _teamIdFuture;
+  final Map<String, String> _selectedMachines = {};
   late DateTime _selectedStartTime;
   late DateTime _selectedEndTime;
   final TextEditingController _startTimeController = TextEditingController();
@@ -421,6 +427,7 @@ class _AddMachineWorklogBottomSheetState
   @override
   void initState() {
     super.initState();
+    _teamIdFuture = UserService.getTeamId();
     final now = DateTime.now();
     _selectedStartTime = DateTime(now.year, now.month, now.day, now.hour, 0);
     _selectedEndTime = _selectedStartTime.add(const Duration(hours: 1));
@@ -489,10 +496,10 @@ class _AddMachineWorklogBottomSheetState
   Future<void> _save() async {
     if (_isSaving) return;
 
-    if (_selectedMachineId == null || _selectedMachineId!.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Válassz ki egy gépet')));
+    if (_selectedMachines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Válassz ki legalább egy gépet')),
+      );
       return;
     }
 
@@ -515,20 +522,25 @@ class _AddMachineWorklogBottomSheetState
     );
 
     try {
-      await widget.workspaceRef.collection('worklogs').add({
-        'type': 'machines',
-        'machineId': _selectedMachineId,
-        'machineName': _selectedMachineName ?? 'Ismeretlen gép',
-        // WorklogEntryTile kompatibilitás: ezeket a kulcsokat is használja.
-        'employeeId': _selectedMachineId,
-        'startTime': _selectedStartTime,
-        'endTime': _selectedEndTime,
-        'breakMinutes': 0,
-        'date': dateOnly,
-        'assignedProjectId': widget.projectId,
-        'description': _descriptionController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      final batch = FirebaseFirestore.instance.batch();
+      for (final machine in _selectedMachines.entries) {
+        final docRef = widget.workspaceRef.collection('worklogs').doc();
+        batch.set(docRef, {
+          'type': 'machines',
+          'machineId': machine.key,
+          'machineName': machine.value,
+          // WorklogEntryTile kompatibilitás: ezeket a kulcsokat is használja.
+          'employeeId': machine.key,
+          'startTime': _selectedStartTime,
+          'endTime': _selectedEndTime,
+          'breakMinutes': 0,
+          'date': dateOnly,
+          'assignedProjectId': widget.projectId,
+          'description': _descriptionController.text.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
 
       await widget.workspaceRef.update({
         'updatedAt': FieldValue.serverTimestamp(),
@@ -536,7 +548,11 @@ class _AddMachineWorklogBottomSheetState
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gépmunkaidő sikeresen elmentve')),
+        SnackBar(
+          content: Text(
+            '${_selectedMachines.length} gép munkaideje sikeresen elmentve',
+          ),
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -546,6 +562,140 @@ class _AddMachineWorklogBottomSheetState
         context,
       ).showSnackBar(SnackBar(content: Text('Hiba mentés közben: $e')));
     }
+  }
+
+  Future<void> _openMachinesSelector(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> machines,
+  ) async {
+    final tempSelected = {..._selectedMachines};
+    final result = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              bottom: false,
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Gép(ek) kiválasztása',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: machines.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final machine = machines[index];
+                          final machineId = machine.id;
+                          final machineName =
+                              machine.data()['name'] as String? ??
+                              'Névtelen gép';
+                          final isSelected = tempSelected.containsKey(
+                            machineId,
+                          );
+
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            title: Text(machineName),
+                            trailing: AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color:
+                                    isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.transparent,
+                                border: Border.all(
+                                  color:
+                                      isSelected
+                                          ? Theme.of(
+                                            context,
+                                          ).colorScheme.primary
+                                          : Theme.of(context).dividerColor,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child:
+                                  isSelected
+                                      ? Icon(
+                                        Icons.check,
+                                        size: 14,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimary,
+                                      )
+                                      : null,
+                            ),
+                            onTap: () {
+                              setModalState(() {
+                                if (isSelected) {
+                                  tempSelected.remove(machineId);
+                                } else {
+                                  tempSelected[machineId] = machineName;
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        12,
+                        16,
+                        MediaQuery.of(context).viewPadding.bottom + 8,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () => Navigator.pop(context, tempSelected),
+                          child: const Text('Kész'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || result == null) return;
+    setState(() {
+      _selectedMachines
+        ..clear()
+        ..addAll(result);
+    });
   }
 
   @override
@@ -563,24 +713,27 @@ class _AddMachineWorklogBottomSheetState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Új gépmunkaidő',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      'Új gépmunkaidő',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               FutureBuilder<String?>(
-                future: UserService.getTeamId(),
+                future: _teamIdFuture,
                 builder: (context, teamSnap) {
                   final teamId = teamSnap.data;
                   if (teamSnap.connectionState == ConnectionState.waiting) {
@@ -614,49 +767,55 @@ class _AddMachineWorklogBottomSheetState
                       }
 
                       final validIds = machines.map((m) => m.id).toSet();
-                      if (_selectedMachineId != null &&
-                          !validIds.contains(_selectedMachineId)) {
+                      if (_selectedMachines.keys.any(
+                        (id) => !validIds.contains(id),
+                      )) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!mounted) return;
                           setState(() {
-                            _selectedMachineId = null;
-                            _selectedMachineName = null;
+                            _selectedMachines.removeWhere(
+                              (id, _) => !validIds.contains(id),
+                            );
                           });
                         });
                       }
 
-                      return DropdownButtonFormField<String>(
-                        value: _selectedMachineId,
-                        decoration: const InputDecoration(
-                          labelText: 'Gép kiválasztása',
-                          border: OutlineInputBorder(),
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _openMachinesSelector(machines),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Gépek kiválasztása',
+                            border: OutlineInputBorder(),
+                            suffixIcon: Icon(Icons.keyboard_arrow_up),
+                          ),
+                          child:
+                              _selectedMachines.isEmpty
+                                  ? Text(
+                                    'Koppints a választáshoz',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
+                                    ),
+                                  )
+                                  : Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children:
+                                        _selectedMachines.entries.map((entry) {
+                                          return InputChip(
+                                            label: Text(entry.value),
+                                            onDeleted:
+                                                () => setState(
+                                                  () => _selectedMachines
+                                                      .remove(entry.key),
+                                                ),
+                                          );
+                                        }).toList(),
+                                  ),
                         ),
-                        items:
-                            machines.map((doc) {
-                              final name =
-                                  doc.data()['name'] as String? ??
-                                  'Névtelen gép';
-                              return DropdownMenuItem<String>(
-                                value: doc.id,
-                                child: Text(name),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          final selectedDoc =
-                              machines
-                                  .where((m) => m.id == value)
-                                  .cast<
-                                    QueryDocumentSnapshot<Map<String, dynamic>>
-                                  >()
-                                  .firstOrNull;
-
-                          setState(() {
-                            _selectedMachineId = value;
-                            _selectedMachineName =
-                                selectedDoc?.data()['name'] as String? ??
-                                'Névtelen gép';
-                          });
-                        },
                       );
                     },
                   );

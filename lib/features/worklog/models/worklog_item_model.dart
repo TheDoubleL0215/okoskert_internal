@@ -6,6 +6,7 @@ class WorklogItemModel {
   final String? projectId;
   final String? employeeName;
   final String? projectName;
+  final String? type;
   final String description;
   final DateTime date;
   final int workedMinutes;
@@ -19,6 +20,7 @@ class WorklogItemModel {
     required this.employeeId,
     this.projectId,
     this.projectName,
+    this.type,
     required this.description,
     required this.date,
     required this.workedMinutes,
@@ -46,6 +48,7 @@ class WorklogItemModel {
       breakMinutes: map['breakMinutes'] ?? 0,
       employeeName: map['employeeName'],
       projectName: map['projectName'],
+      type: map['type'] as String?,
     );
   }
 
@@ -66,6 +69,7 @@ class WorklogItemModel {
       breakMinutes: breakMinutes,
       employeeName: employeeName,
       projectName: projectName,
+      type: type,
     );
   }
 
@@ -81,6 +85,7 @@ class WorklogItemModel {
       'startTime': startTime,
       'endTime': endTime,
       'breakMinutes': breakMinutes,
+      'type': type,
     };
   }
 }

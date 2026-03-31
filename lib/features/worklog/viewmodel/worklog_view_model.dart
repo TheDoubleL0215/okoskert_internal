@@ -35,6 +35,7 @@ class WorklogViewModel extends ChangeNotifier {
 
   final Set<String> _selectedProjectIds = <String>{};
   final Set<String> _selectedEmployeeIds = <String>{};
+  final Set<String> _selectedTypes = <String>{};
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
 
@@ -66,12 +67,14 @@ class WorklogViewModel extends ChangeNotifier {
 
   Set<String> get selectedProjectIds => _selectedProjectIds;
   Set<String> get selectedEmployeeIds => _selectedEmployeeIds;
+  Set<String> get selectedTypes => _selectedTypes;
   DateTime? get filterStartDate => _filterStartDate;
   DateTime? get filterEndDate => _filterEndDate;
 
   bool get hasActiveFilters =>
       _selectedProjectIds.isNotEmpty ||
       _selectedEmployeeIds.isNotEmpty ||
+      _selectedTypes.isNotEmpty ||
       _filterStartDate != null ||
       _filterEndDate != null;
 
@@ -154,11 +157,19 @@ class WorklogViewModel extends ChangeNotifier {
     _applyFilters();
   }
 
+  void setSelectedTypes(Set<String> types) {
+    _selectedTypes
+      ..clear()
+      ..addAll(types);
+    _applyFilters();
+  }
+
   void clearFilters() {
     _filterStartDate = null;
     _filterEndDate = null;
     _selectedEmployeeIds.clear();
     _selectedProjectIds.clear();
+    _selectedTypes.clear();
     _applyFilters();
   }
 
@@ -185,6 +196,16 @@ class WorklogViewModel extends ChangeNotifier {
   String get projectFilterLabel {
     if (_selectedProjectIds.isEmpty) return 'Projektek';
     return 'Projektek (${_selectedProjectIds.length})';
+  }
+
+  String get typeFilterLabel {
+    if (_selectedTypes.isEmpty) return 'Típus';
+    if (_selectedTypes.length == 1) {
+      final value = _selectedTypes.first;
+      if (value == 'machines') return 'Típus: Gépek';
+      return 'Típus: Kollégák';
+    }
+    return 'Típus (${_selectedTypes.length})';
   }
 
   // --- Belső szűrési logika ---
@@ -216,6 +237,14 @@ class WorklogViewModel extends ChangeNotifier {
                     _selectedProjectIds.contains(log.projectId),
               )
               .toList();
+    }
+    if (_selectedTypes.isNotEmpty) {
+      result =
+          result.where((log) {
+            final type = (log.type ?? '').trim();
+            final normalized = type == 'machines' ? 'machines' : 'colleagues';
+            return _selectedTypes.contains(normalized);
+          }).toList();
     }
     return result;
   }

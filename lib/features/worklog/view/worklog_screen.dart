@@ -280,6 +280,11 @@ class _FilterChips extends StatelessWidget {
                           ? (_) => _showProjectFilterSheet(context, teamId!)
                           : null,
                 ),
+                FilterChip(
+                  label: Text(viewModel.typeFilterLabel),
+                  selected: viewModel.selectedTypes.isNotEmpty,
+                  onSelected: (_) => _showTypeFilterSheet(context),
+                ),
               ],
             ),
           ),
@@ -354,6 +359,28 @@ class _FilterChips extends StatelessWidget {
     ).then((result) {
       if (result != null) {
         viewModel.setSelectedProjectIds(result);
+      }
+    });
+  }
+
+  void _showTypeFilterSheet(BuildContext context) {
+    final viewModel = context.read<WorklogViewModel>();
+
+    showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (context) => MultiSelectFilterSheet(
+            title: 'Típus szűrése',
+            future: Future.value([
+              {'id': 'machines', 'label': 'Gépek'},
+              {'id': 'colleagues', 'label': 'Kollégák'},
+            ]),
+            selectedIds: viewModel.selectedTypes,
+          ),
+    ).then((result) {
+      if (result != null) {
+        viewModel.setSelectedTypes(result);
       }
     });
   }

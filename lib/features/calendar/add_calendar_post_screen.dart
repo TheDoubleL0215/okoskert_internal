@@ -629,6 +629,11 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
           children: [
             Text('Projekt', style: Theme.of(context).textTheme.titleMedium),
             FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               onPressed: _showProjectSelectionModal,
               icon:
                   _selectedProjectIds.isEmpty

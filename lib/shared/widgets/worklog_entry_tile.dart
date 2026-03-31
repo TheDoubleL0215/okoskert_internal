@@ -25,15 +25,31 @@ class WorklogEntryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  item.employeeName ?? '',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  spacing: 8,
+                  children: [
+                    if (item.type == 'machines')
+                      CircleAvatar(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        radius: 16,
+                        child: Icon(
+                          Icons.agriculture,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    Text(
+                      item.employeeName ?? '',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
+
                 if (item.projectName != null && item.projectName!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),

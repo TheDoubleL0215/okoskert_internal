@@ -46,6 +46,39 @@ Stream<List<WorklogItemModel>> getHydratedWorklogs(
           employeeIds,
         );
 
+        // 2/b. Machine names from `machines` collection (for type == 'machines')
+        final machineIds =
+            worklogDocs
+                .where((d) => (d.data()['type'] as String?) == 'machines')
+                .map(
+                  (d) =>
+                      (d.data()['machineId'] ?? d.data()['employeeId'] ?? '')
+                          as String,
+                )
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList();
+
+        final machineNameMap = <String, String>{};
+        if (machineIds.isNotEmpty) {
+          final machineDocs = await Future.wait(
+            machineIds.map(
+              (id) =>
+                  FirebaseFirestore.instance
+                      .collection('machines')
+                      .doc(id)
+                      .get(),
+            ),
+          );
+          for (final doc in machineDocs) {
+            final data = doc.data();
+            final name = data?['name'] as String?;
+            if (doc.id.isNotEmpty && name != null && name.isNotEmpty) {
+              machineNameMap[doc.id] = name;
+            }
+          }
+        }
+
         // 3. Map worklog docs to WorklogViewItem
         return worklogDocs.map((doc) {
           final data = doc.data();
@@ -53,6 +86,15 @@ Stream<List<WorklogItemModel>> getHydratedWorklogs(
           final uId =
               (data['employeeId'] ?? data['employeeName'] ?? '') as String? ??
               '';
+          final isMachine = (data['type'] as String?) == 'machines';
+          final machineId =
+              (data['machineId'] ?? data['employeeId'] ?? '') as String? ?? '';
+          final displayName =
+              isMachine
+                  ? (machineNameMap[machineId] ??
+                      (data['machineName'] as String?) ??
+                      machineId)
+                  : (employeeNames[uId] ?? uId);
 
           final date = data['date'] as Timestamp?;
           final startTime = data['startTime'] as Timestamp?;
@@ -69,7 +111,7 @@ Stream<List<WorklogItemModel>> getHydratedWorklogs(
 
           return WorklogItemModel(
             id: doc.id,
-            employeeName: employeeNames[uId] ?? uId,
+            employeeName: displayName,
             projectName:
                 projectMap[pId] ??
                 (pId.isNotEmpty ? 'Projekt nem található' : ''),
@@ -81,6 +123,7 @@ Stream<List<WorklogItemModel>> getHydratedWorklogs(
             startTime: startTime?.toDate() ?? DateTime.now(),
             endTime: endTime?.toDate() ?? DateTime.now(),
             breakMinutes: breakMinutes,
+            type: data['type'] as String?,
           );
         }).toList();
       });

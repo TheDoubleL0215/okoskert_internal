@@ -22,11 +22,19 @@ class SelectedEmployeesSection extends StatelessWidget {
         }).toList();
 
     return Container(
-      padding: const EdgeInsets.only(left: 16, right: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
-      ),
+      padding:
+          !isProjectDetails
+              ? EdgeInsets.zero
+              : EdgeInsets.only(left: 16, right: 8),
+      decoration:
+          !isProjectDetails
+              ? null
+              : BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

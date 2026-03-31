@@ -15,12 +15,7 @@ class _MachineHoursScreenState extends State<MachineHoursScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Munkagépek kezelése',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Munkagépek kezelése')),
       body: FutureBuilder<String?>(
         future: UserService.getTeamId(),
         builder: (context, teamIdSnapshot) {

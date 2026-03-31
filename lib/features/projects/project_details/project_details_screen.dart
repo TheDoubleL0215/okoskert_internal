@@ -33,32 +33,32 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.projectName,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        title: Text(widget.projectName),
         actions: [
           FutureBuilder<int?>(
             future: UserService.getRole(),
             builder: (context, roleSnapshot) {
               final role = roleSnapshot.data;
               if (role == 1) {
-                return TextButton(
-                  child: const Text('Szerkesztés'),
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => CreateProjectScreen(
-                              projectId: widget.projectId,
-                            ),
-                      ),
-                    );
-                    // No need to refresh manually — StreamBuilder handles it.
-                  },
+                return Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: CircleAvatar(
+                    child: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CreateProjectScreen(
+                                  projectId: widget.projectId,
+                                ),
+                          ),
+                        );
+                        // No need to refresh manually — StreamBuilder handles it.
+                      },
+                    ),
+                  ),
                 );
               }
               return const SizedBox.shrink();

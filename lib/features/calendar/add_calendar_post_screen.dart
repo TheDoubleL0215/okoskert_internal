@@ -800,7 +800,7 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: false,
+        centerTitle: true,
         title: Text(
           widget.eventId != null ? 'Bejegyzés szerkesztése' : 'Új bejegyzés',
         ),

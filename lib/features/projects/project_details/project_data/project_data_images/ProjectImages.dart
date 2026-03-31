@@ -465,120 +465,129 @@ class _DiaryPostCard extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return GestureDetector(
-      // Teljes kártya területén fusson a long press (ne csak ott, ahol van gyerek).
-      // onTap nincs: a galériát továbbra is csak a képek nyitják.
-      behavior: HitTestBehavior.opaque,
-      onLongPress:
-          isOwnPost ? () => _confirmAndDeleteOwnDiaryPost(context, doc) : null,
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 🔹 Header (avatar + name + date)
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: cs.primaryContainer,
-                    child: Text(
-                      authorName.isNotEmpty ? authorName[0].toUpperCase() : '',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onLongPress:
+              isOwnPost
+                  ? () => _confirmAndDeleteOwnDiaryPost(context, doc)
+                  : null,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 🔹 Header (avatar + name + date)
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: cs.primaryContainer,
+                      child: Text(
+                        authorName.isNotEmpty
+                            ? authorName[0].toUpperCase()
+                            : '',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      authorName,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (dateLabel != null)
-                    Text(
-                      dateLabel,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        authorName,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                ],
-              ),
+                    if (dateLabel != null)
+                      Text(
+                        dateLabel,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
 
-              if (text.isNotEmpty || urls.isNotEmpty)
-                const SizedBox(height: 10),
+                if (text.isNotEmpty || urls.isNotEmpty)
+                  const SizedBox(height: 10),
 
-              // 🔹 Post text
-              if (text.isNotEmpty) Text(text, style: theme.textTheme.bodyLarge),
+                // 🔹 Post text
+                if (text.isNotEmpty)
+                  Text(text, style: theme.textTheme.bodyLarge),
 
-              if (text.isNotEmpty && urls.isNotEmpty)
-                const SizedBox(height: 10),
+                if (text.isNotEmpty && urls.isNotEmpty)
+                  const SizedBox(height: 10),
 
-              // 🔹 Images
-              if (urls.isNotEmpty)
-                SizedBox(
-                  height: 112,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: urls.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, i) {
-                      final url = urls[i];
-                      final thumbPx =
-                          (112 * MediaQuery.devicePixelRatioOf(context))
-                              .round();
-                      return GestureDetector(
-                        onTap:
-                            () => _openDiaryPhotoGallery(
-                              context,
-                              urls,
-                              initialIndex: i,
-                            ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: SizedBox(
-                            width: 112,
-                            height: 112,
-                            child: CachedNetworkImage(
-                              imageUrl: url,
+                // 🔹 Images
+                if (urls.isNotEmpty)
+                  SizedBox(
+                    height: 112,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: urls.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, i) {
+                        final url = urls[i];
+                        final thumbPx =
+                            (112 * MediaQuery.devicePixelRatioOf(context))
+                                .round();
+                        return GestureDetector(
+                          onTap:
+                              () => _openDiaryPhotoGallery(
+                                context,
+                                urls,
+                                initialIndex: i,
+                              ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
                               width: 112,
                               height: 112,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              memCacheWidth: thumbPx,
-                              progressIndicatorBuilder: (context, _, progress) {
-                                return ColoredBox(
-                                  color: cs.surfaceContainerHighest,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      value: progress.progress,
+                              child: CachedNetworkImage(
+                                imageUrl: url,
+                                width: 112,
+                                height: 112,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                                memCacheWidth: thumbPx,
+                                progressIndicatorBuilder: (
+                                  context,
+                                  _,
+                                  progress,
+                                ) {
+                                  return ColoredBox(
+                                    color: cs.surfaceContainerHighest,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: progress.progress,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                              errorWidget:
-                                  (context, _, __) => ColoredBox(
-                                    color: cs.errorContainer,
-                                    child: Icon(
-                                      Icons.broken_image_outlined,
-                                      color: cs.onErrorContainer,
+                                  );
+                                },
+                                errorWidget:
+                                    (context, _, __) => ColoredBox(
+                                      color: cs.errorContainer,
+                                      child: Icon(
+                                        Icons.broken_image_outlined,
+                                        color: cs.onErrorContainer,
+                                      ),
                                     ),
-                                  ),
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

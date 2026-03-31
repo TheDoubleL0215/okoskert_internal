@@ -155,68 +155,83 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
               ),
               const SizedBox(height: 20),
               // Kezdőidő
-              ListTile(
-                title: const Text('Kezdőidő'),
-                subtitle: Text(
-                  CreateNewWorklogViewModel.formatTime(viewModel.startTime),
-                ),
-                trailing: const Icon(Icons.access_time),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.fromDateTime(viewModel.startTime),
-                  );
-                  if (picked != null) {
-                    viewModel.setStartTime(
-                      DateTime(
-                        viewModel.date.year,
-                        viewModel.date.month,
-                        viewModel.date.day,
-                        picked.hour,
-                        picked.minute,
+              Row(
+                children: [
+                  Expanded(
+                    child: ListTile(
+                      title: const Text('Kezdőidő'),
+                      subtitle: Text(
+                        CreateNewWorklogViewModel.formatTime(
+                          viewModel.startTime,
+                        ),
                       ),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              // Végidő
-              ListTile(
-                title: const Text('Végidő'),
-                subtitle: Text(
-                  CreateNewWorklogViewModel.formatTime(viewModel.endTime),
-                ),
-                trailing: const Icon(Icons.access_time),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.fromDateTime(viewModel.endTime),
-                  );
-                  if (picked != null) {
-                    viewModel.setEndTime(
-                      DateTime(
-                        viewModel.date.year,
-                        viewModel.date.month,
-                        viewModel.date.day,
-                        picked.hour,
-                        picked.minute,
+                      trailing: const Icon(Icons.access_time),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
-                    );
-                  }
-                },
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(
+                            viewModel.startTime,
+                          ),
+                        );
+                        if (picked != null) {
+                          viewModel.setStartTime(
+                            DateTime(
+                              viewModel.date.year,
+                              viewModel.date.month,
+                              viewModel.date.day,
+                              picked.hour,
+                              picked.minute,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Végidő
+                  Expanded(
+                    child: ListTile(
+                      title: const Text('Végidő'),
+                      subtitle: Text(
+                        CreateNewWorklogViewModel.formatTime(viewModel.endTime),
+                      ),
+                      trailing: const Icon(Icons.access_time),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(
+                            viewModel.endTime,
+                          ),
+                        );
+                        if (picked != null) {
+                          viewModel.setEndTime(
+                            DateTime(
+                              viewModel.date.year,
+                              viewModel.date.month,
+                              viewModel.date.day,
+                              picked.hour,
+                              picked.minute,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 20),
               // Leírás
               TextFormField(
@@ -227,7 +242,7 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
                   border: OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
-                maxLines: 4,
+                maxLines: 2,
                 onChanged: viewModel.setDescription,
               ),
               const SizedBox(height: 32),

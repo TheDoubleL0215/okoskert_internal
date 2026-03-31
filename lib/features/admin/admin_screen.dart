@@ -35,10 +35,7 @@ class AdminPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Admin',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Admin'),
         actions: [
           IconButton(
             onPressed: () {

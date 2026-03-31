@@ -11,6 +11,10 @@ class AppTheme {
     return ThemeData(
       colorScheme: colorScheme,
       inputDecorationTheme: _inputDecorationTheme(colorScheme),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+      ),
       useMaterial3: true,
     );
   }

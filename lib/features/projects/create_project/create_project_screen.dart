@@ -134,22 +134,14 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            appBarTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
+        appBar: AppBar(title: Text(appBarTitle)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          appBarTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(appBarTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),

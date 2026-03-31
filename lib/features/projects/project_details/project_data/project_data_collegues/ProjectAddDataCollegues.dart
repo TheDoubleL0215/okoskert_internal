@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueTimeEntryWidget.dart';
 
@@ -17,10 +18,17 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
   DateTime _selectedDate = DateTime.now();
   late final TextEditingController _dateController;
 
+  void _addTimeEntry() {
+    setState(() {
+      _timeEntries.add({});
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _dateController = TextEditingController(text: _formatDate(_selectedDate));
+    _addTimeEntry();
   }
 
   @override
@@ -54,12 +62,6 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
         _timeEntries[index] = data;
       });
     }
-  }
-
-  void _addTimeEntry() {
-    setState(() {
-      _timeEntries.add({});
-    });
   }
 
   void _removeTimeEntry(int index) {
@@ -375,15 +377,7 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        title: Text(
-          "Új bejegyzés",
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: AppBar(centerTitle: true, title: Text("Új bejegyzés")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -404,58 +398,76 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
             // Többször használható időbejegyzés widget-ek
             ...List.generate(
               _timeEntries.length,
-              (index) => Card(
-                margin: const EdgeInsets.only(bottom: 16),
+              (index) => Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Divider(height: 1),
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
+                        horizontal: 0,
+                        vertical: 8,
                       ),
-                      child: Text(
-                        '${index + 1}. időbejegyzés',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Text(
+                            '${index + 1}. Időbejegyzés',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0,
+                              fontSize: 18,
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () => _removeTimeEntry(index),
+                              icon: Icon(
+                                LucideIcons.trash2,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     ColleagueTimeEntryWidget(
                       onChanged: (data) => _onTimeEntryChanged(index, data),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton.icon(
-                          onPressed: () => _removeTimeEntry(index),
-                          icon: const Icon(Icons.delete),
-                          label: const Text('Törlés'),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
             // Új időbejegyzés hozzáadása gomb
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _addTimeEntry,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Időbejegyzés hozzáadása'),
-                ),
-                Spacer(),
-                FilledButton(
-                  onPressed: _saveWorkLog,
-                  child: const Text('Mentés'),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: _addTimeEntry,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Időbejegyzés hozzáadása'),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: _saveWorkLog,
+                    child: const Text('Mentés'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

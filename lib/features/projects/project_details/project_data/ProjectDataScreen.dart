@@ -36,12 +36,7 @@ class _ProjectDataScreenState extends State<ProjectDataScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.projectName,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        title: Text(widget.projectName),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

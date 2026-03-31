@@ -232,7 +232,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 0.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -242,6 +242,7 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
             const Text('Nincsenek elérhető dolgozók')
           else
             SelectedEmployeesSection(
+              isProjectDetails: true,
               availableEmployees: _employees,
               assignedEmployeeIds: _selectedEmployeeIds,
               onEditPressed: _openEmployeePicker,
@@ -255,7 +256,8 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
                 child: TextFormField(
                   controller: _startTimeController,
                   readOnly: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    labelStyle: Theme.of(context).textTheme.bodyLarge,
                     labelText: 'Kezdés',
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.access_time),
@@ -268,7 +270,8 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
                 child: TextFormField(
                   controller: _endTimeController,
                   readOnly: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    labelStyle: Theme.of(context).textTheme.bodyLarge,
                     labelText: 'Vége',
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.access_time),
@@ -283,7 +286,8 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
           // Szünet (perc) mező
           TextFormField(
             controller: _breakMinutesController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
+              labelStyle: Theme.of(context).textTheme.bodyLarge,
               labelText: 'Szünet (perc)',
               border: OutlineInputBorder(),
             ),
@@ -296,7 +300,8 @@ class _ColleagueTimeEntryWidgetState extends State<ColleagueTimeEntryWidget> {
             maxLines: 2,
             textCapitalization: TextCapitalization.sentences,
             controller: _descriptionController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
+              labelStyle: Theme.of(context).textTheme.bodyLarge,
               labelText: 'Leírás',
               border: OutlineInputBorder(),
             ),

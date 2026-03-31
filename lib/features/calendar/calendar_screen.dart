@@ -61,12 +61,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Naptár',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Naptár')),
       body: FutureBuilder<String?>(
         future: _teamIdFuture,
         builder: (context, teamSnapshot) {

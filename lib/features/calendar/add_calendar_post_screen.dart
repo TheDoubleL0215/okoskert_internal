@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/core/utils/services/employee_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:okoskert_internal/data/services/workspace_service.dart';
 import 'package:okoskert_internal/features/calendar/ui/employee_selection_bottom_sheet.dart';
 import 'package:okoskert_internal/features/calendar/ui/selected_employees_section.dart';
 
@@ -214,6 +215,281 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
     });
   }
 
+  List<String> _nonEmptySubtaskTitles() {
+    return _subtasks
+        .map((subtask) {
+          final id = subtask['id'] as String;
+          return _subtaskControllers[id]?.text.trim() ?? '';
+        })
+        .where((t) => t.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _saveSubtaskScheme() async {
+    final titles = _nonEmptySubtaskTitles();
+    if (titles.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'A séma mentéséhez legalább egy megnevezett részfeladat kell.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final workspaceRef = await WorkspaceService.getWorkspaceRefForCurrentTeam();
+    if (workspaceRef == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nem található munkatér a csapathoz.')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    final schemeName = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => const _SaveSubtaskSchemeNameDialog(),
+    );
+
+    if (schemeName == null || schemeName.isEmpty) {
+      return;
+    }
+
+    try {
+      await workspaceRef.collection('subtaskScheme').add({
+        'name': schemeName,
+        'taskNames': titles,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('„$schemeName” séma elmentve.')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Séma mentése sikertelen: $e')));
+    }
+  }
+
+  void _appendSubtasksFromNames(List<String> names) {
+    if (names.isEmpty) return;
+    setState(() {
+      var base = DateTime.now().microsecondsSinceEpoch;
+      for (var i = 0; i < names.length; i++) {
+        final trimmed = names[i].trim();
+        if (trimmed.isEmpty) continue;
+        final id = '${base}_$i';
+        base++;
+        _subtasks.add({'id': id, 'title': trimmed, 'status': 'ongoing'});
+        _subtaskControllers[id] = TextEditingController(text: trimmed);
+      }
+    });
+  }
+
+  Future<void> _showSubtaskSchemesSheet() async {
+    final workspaceRef = await WorkspaceService.getWorkspaceRefForCurrentTeam();
+    if (workspaceRef == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nem található munkatér a csapathoz.')),
+      );
+      return;
+    }
+
+    QuerySnapshot<Map<String, dynamic>>? snapshot;
+    try {
+      snapshot = await workspaceRef.collection('subtaskScheme').get();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Sémák betöltése sikertelen: $e')));
+      return;
+    }
+
+    if (!mounted) return;
+
+    final schemes =
+        snapshot.docs.map((doc) {
+            final data = doc.data();
+            final name = data['name'] as String? ?? doc.id;
+            final taskNames =
+                (data['taskNames'] as List?)?.map((e) => '$e').toList() ??
+                <String>[];
+            return {'id': doc.id, 'name': name, 'taskNames': taskNames};
+          }).toList()
+          ..sort(
+            (a, b) => (a['name'] as String).toLowerCase().compareTo(
+              (b['name'] as String).toLowerCase(),
+            ),
+          );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final modalSchemes =
+            schemes.map((e) => Map<String, dynamic>.from(e)).toList();
+        String? selectedId;
+        var isEditing = false;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final listHeight = MediaQuery.of(context).size.height * 0.45;
+            final bottomInset = MediaQuery.of(sheetContext).viewPadding.bottom;
+
+            Future<void> deleteScheme(String docId, String schemeName) async {
+              try {
+                await workspaceRef
+                    .collection('subtaskScheme')
+                    .doc(docId)
+                    .delete();
+                if (!sheetContext.mounted) return;
+                setModalState(() {
+                  modalSchemes.removeWhere((s) => s['id'] == docId);
+                  if (selectedId == docId) {
+                    selectedId = null;
+                  }
+                });
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('„$schemeName” törölve.')),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Séma törlése sikertelen: $e')),
+                );
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: 24 + bottomInset,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Mentett sémák',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            isEditing = !isEditing;
+                            if (!isEditing) {
+                              selectedId = null;
+                            }
+                          });
+                        },
+                        child: Text(isEditing ? 'Kész' : 'Szerkesztés'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(sheetContext),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: listHeight,
+                    child:
+                        modalSchemes.isEmpty
+                            ? const Center(
+                              child: Text(
+                                'Még nincs mentett részfeladat-séma.',
+                              ),
+                            )
+                            : ListView.builder(
+                              itemCount: modalSchemes.length,
+                              itemBuilder: (context, index) {
+                                final s = modalSchemes[index];
+                                final id = s['id']! as String;
+                                final name = s['name']! as String;
+                                final count = (s['taskNames'] as List).length;
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  selected: !isEditing && selectedId == id,
+                                  title: Text(name),
+                                  subtitle: Text('$count részfeladat'),
+                                  trailing:
+                                      isEditing
+                                          ? IconButton(
+                                            icon: Icon(
+                                              Icons.delete_outline,
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.error,
+                                            ),
+                                            onPressed: () {
+                                              deleteScheme(id, name);
+                                            },
+                                          )
+                                          : null,
+                                  onTap:
+                                      isEditing
+                                          ? null
+                                          : () {
+                                            setModalState(() {
+                                              selectedId = id;
+                                            });
+                                          },
+                                );
+                              },
+                            ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.tonal(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed:
+                        isEditing || selectedId == null
+                            ? null
+                            : () {
+                              final chosen = modalSchemes.firstWhere(
+                                (s) => s['id'] == selectedId,
+                              );
+                              final names = List<String>.from(
+                                chosen['taskNames'] as List,
+                              );
+                              Navigator.pop(sheetContext);
+                              _appendSubtasksFromNames(names);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Séma részfeladatai betöltve.'),
+                                ),
+                              );
+                            },
+                    child: const Text('Séma használata'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _descriptionController.dispose();
@@ -264,19 +540,6 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Többnapos esemény'),
-          value: _isMultiDay,
-          onChanged: (value) {
-            setState(() {
-              _isMultiDay = value;
-              if (!value) {
-                _rangeEnd = _rangeStart;
-              }
-            });
-          },
-        ),
         if (!_isMultiDay)
           TextField(
             readOnly: true,
@@ -300,6 +563,7 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
               ),
               Expanded(
                 child: TextField(
+                  readOnly: true,
                   controller: TextEditingController(
                     text: _formatHuDate(_rangeEnd),
                   ),
@@ -310,6 +574,19 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
             ],
           ),
         ],
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Többnapos esemény'),
+          value: _isMultiDay,
+          onChanged: (value) {
+            setState(() {
+              _isMultiDay = value;
+              if (!value) {
+                _rangeEnd = _rangeStart;
+              }
+            });
+          },
+        ),
       ],
     );
   }
@@ -725,7 +1002,24 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        Text('Részfeladatok', style: Theme.of(context).textTheme.titleMedium),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Részfeladatok',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            FilledButton.tonal(
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: _showSubtaskSchemesSheet,
+              child: const Text('Sémák'),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         if (_subtasks.isNotEmpty) ...[
           ListView.builder(
@@ -792,10 +1086,31 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
             },
           ),
         ],
-        TextButton.icon(
-          onPressed: _addSubtask,
-          icon: const Icon(Icons.add, size: 20),
-          label: const Text('Részfeladat hozzáadása'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: _addSubtask,
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('Részfeladat'),
+              ),
+            ),
+            if (_subtasks.isNotEmpty)
+              Expanded(
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: _isSaving ? null : _saveSubtaskScheme,
+                  icon: const Icon(Icons.bookmark_add_outlined, size: 20),
+                  label: const Text('Mentés'),
+                ),
+              ),
+          ],
         ),
       ],
     );
@@ -841,6 +1156,7 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildDateRangeSection(),
+                  const SizedBox(height: 16),
                   TextFormField(
                     textCapitalization: TextCapitalization.sentences,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -864,8 +1180,6 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
                       return null;
                     },
                   ),
-                  const Divider(),
-
                   const Divider(),
                   TextFormField(
                     textCapitalization: TextCapitalization.sentences,
@@ -899,6 +1213,62 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SaveSubtaskSchemeNameDialog extends StatefulWidget {
+  const _SaveSubtaskSchemeNameDialog();
+
+  @override
+  State<_SaveSubtaskSchemeNameDialog> createState() =>
+      _SaveSubtaskSchemeNameDialogState();
+}
+
+class _SaveSubtaskSchemeNameDialogState
+    extends State<_SaveSubtaskSchemeNameDialog> {
+  late final TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Séma mentése'),
+      content: TextField(
+        controller: _nameController,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(
+          labelText: 'Séma neve',
+          hintText: 'Add meg a séma megnevezését',
+        ),
+        onSubmitted: (_) {
+          Navigator.pop(context, _nameController.text.trim());
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Mégse'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context, _nameController.text.trim());
+          },
+          child: const Text('Mentés'),
+        ),
+      ],
     );
   }
 }

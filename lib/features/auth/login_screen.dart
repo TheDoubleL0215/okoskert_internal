@@ -56,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final accessCode = _accessCodeController.text.trim();
         debugPrint('accessCode: $accessCode');
 
+        //TODO: Remove this after testing
         // Ha a hozzáférési kód "CNWS", navigáljunk a CreateNewWorkspaceScreen-re
         if (accessCode == 'CNWS') {
           final userCredential = await FirebaseAuth.instance

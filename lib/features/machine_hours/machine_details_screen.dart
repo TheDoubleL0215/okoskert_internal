@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/core/utils/services/machine_work_hours_service.dart';
 import 'package:okoskert_internal/core/utils/services/project_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/machine_hours/ui/add_working_hours_bottom_sheet.dart';
+import 'package:provider/provider.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 
 class MachineDetailsScreen extends StatefulWidget {
@@ -43,6 +45,8 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     return Scaffold(
       appBar: AppBar(title: const Text("Gép részletei")),
       body: SingleChildScrollView(
@@ -363,11 +367,14 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddWorkHoursModal,
-        label: const Text("Óraállás rögzítése"),
-        icon: const Icon(LucideIcons.clockPlus),
-      ),
+      floatingActionButton:
+          role != 3
+              ? FloatingActionButton.extended(
+                onPressed: _showAddWorkHoursModal,
+                label: const Text("Óraállás rögzítése"),
+                icon: const Icon(LucideIcons.clockPlus),
+              )
+              : null,
     );
   }
 

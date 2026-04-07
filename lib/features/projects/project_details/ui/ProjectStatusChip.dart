@@ -5,7 +5,9 @@ class ProjectStatusChip extends StatefulWidget {
   final String projectId;
   final String currentStatus;
   final BuildContext context;
+  final bool isEditable;
   const ProjectStatusChip({
+    required this.isEditable,
     super.key,
     required this.context,
     required this.projectId,
@@ -246,7 +248,10 @@ class _ProjectStatusChipState extends State<ProjectStatusChip> {
             size: 12,
             color: _getStatusColor(currentStatus),
           ),
-          onPressed: () => _showStatusBottomSheet(context, currentStatus),
+          onPressed:
+              widget.isEditable
+                  ? () => _showStatusBottomSheet(context, currentStatus)
+                  : () {},
           backgroundColor: _getStatusColor(
             currentStatus,
           ).withValues(alpha: 0.1),

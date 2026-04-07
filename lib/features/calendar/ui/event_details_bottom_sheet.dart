@@ -7,12 +7,17 @@ import 'package:okoskert_internal/features/projects/project_details/project_deta
 
 class EventDetailsBottomSheet extends StatelessWidget {
   final Map<String, dynamic> event;
-
-  const EventDetailsBottomSheet({super.key, required this.event});
+  final bool isEditable;
+  const EventDetailsBottomSheet({
+    super.key,
+    required this.event,
+    required this.isEditable,
+  });
 
   static Future<void> show(
     BuildContext context,
     Map<String, dynamic> event,
+    bool isEditable,
   ) async {
     final date = event['date'] as Timestamp?;
     final eventDate = date?.toDate();
@@ -80,6 +85,7 @@ class EventDetailsBottomSheet extends StatelessWidget {
       builder:
           (context) => _EventDetailsContent(
             event: event,
+            isEditable: isEditable,
             eventDate: eventDate,
             eventEndDate: eventEndDate,
             relevantEmployees: relevantEmployees,
@@ -104,13 +110,14 @@ class _EventDetailsContent extends StatefulWidget {
   final DateTime? eventEndDate;
   final List<Map<String, dynamic>> relevantEmployees;
   final List<Map<String, dynamic>> relevantProjects;
-
+  final bool isEditable;
   const _EventDetailsContent({
     required this.event,
     this.eventDate,
     this.eventEndDate,
     required this.relevantEmployees,
     required this.relevantProjects,
+    required this.isEditable,
   });
 
   @override
@@ -136,9 +143,7 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
     final s = DateTime(start.year, start.month, start.day);
     final endRaw = widget.eventEndDate;
     final e =
-        endRaw != null
-            ? DateTime(endRaw.year, endRaw.month, endRaw.day)
-            : s;
+        endRaw != null ? DateTime(endRaw.year, endRaw.month, endRaw.day) : s;
 
     String fmt(DateTime d) =>
         '${d.year}. ${d.month.toString().padLeft(2, '0')}. ${d.day.toString().padLeft(2, '0')}.';
@@ -262,6 +267,7 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditable = widget.isEditable;
     Future<void> _deleteEvent() async {
       if (widget.event['id'] == null) return;
 
@@ -340,24 +346,25 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
                   ),
                 ),
               ),
-              PopupMenuButton<String>(
-                position: PopupMenuPosition.under,
-                onSelected: handleClick,
-                itemBuilder: (BuildContext context) {
-                  return {'Törlés'}.map((String choice) {
-                    return PopupMenuItem<String>(
-                      value: choice,
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete),
-                          const SizedBox(width: 8),
-                          Text(choice),
-                        ],
-                      ),
-                    );
-                  }).toList();
-                },
-              ),
+              if (isEditable)
+                PopupMenuButton<String>(
+                  position: PopupMenuPosition.under,
+                  onSelected: handleClick,
+                  itemBuilder: (BuildContext context) {
+                    return {'Törlés'}.map((String choice) {
+                      return PopupMenuItem<String>(
+                        value: choice,
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete),
+                            const SizedBox(width: 8),
+                            Text(choice),
+                          ],
+                        ),
+                      );
+                    }).toList();
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -511,18 +518,20 @@ class _EventDetailsContentState extends State<_EventDetailsContent> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Bezárás'),
               ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _navigateToEdit(context);
-                },
-                icon: const Icon(Icons.edit),
-                label: const Text('Szerkesztés'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
+              if (isEditable) ...[
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _navigateToEdit(context);
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Szerkesztés'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.all(16),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ],

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/machine_hours/machine_hours_screen.dart';
 import 'package:okoskert_internal/features/projects/create_project/create_project_screen.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/ProjectDataScreen.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_details_screen.dart';
 import 'package:okoskert_internal/features/projects/ui/ProjectTile.dart';
+import 'package:provider/provider.dart';
 
 class Projectscollectorscreen extends StatefulWidget {
   const Projectscollectorscreen({super.key});
@@ -41,6 +43,8 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
@@ -305,62 +309,55 @@ class _ProjectscollectorscreenState extends State<Projectscollectorscreen>
           ),
         ),
         floatingActionButtonLocation: ExpandableFab.location,
-        floatingActionButton: FutureBuilder<int?>(
-          future: UserService.getRole(),
-          builder: (context, roleSnapshot) {
-            final role = roleSnapshot.data;
-
-            return ExpandableFab(
-              key: _expandableFabKey,
-              type: ExpandableFabType.up,
-              childrenAnimation: ExpandableFabAnimation.none,
-              distance: 70,
-              overlayStyle: ExpandableFabOverlayStyle(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerLow.withValues(alpha: 0.7),
-              ),
+        floatingActionButton: ExpandableFab(
+          key: _expandableFabKey,
+          type: ExpandableFabType.up,
+          childrenAnimation: ExpandableFabAnimation.none,
+          distance: 70,
+          overlayStyle: ExpandableFabOverlayStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerLow.withValues(alpha: 0.7),
+          ),
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    FloatingActionButton.extended(
-                      label: Text('Munkagépek kezelése'),
-                      heroTag: null,
-                      icon: Icon(Icons.av_timer),
-                      onPressed: () {
-                        _expandableFabKey.currentState?.close();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MachineHoursScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                if (role == 1)
-                  Row(
-                    children: [
-                      FloatingActionButton.extended(
-                        label: Text('Új projekt létrehozása'),
-                        heroTag: null,
-                        onPressed: () {
-                          _expandableFabKey.currentState?.close();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CreateProjectScreen(),
-                            ),
-                          );
-                        },
-                        icon: Icon(Icons.add),
+                FloatingActionButton.extended(
+                  label: Text('Munkagépek kezelése'),
+                  heroTag: null,
+                  icon: Icon(Icons.av_timer),
+                  onPressed: () {
+                    _expandableFabKey.currentState?.close();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MachineHoursScreen(),
                       ),
-                    ],
-                  ),
+                    );
+                  },
+                ),
               ],
-            );
-          },
+            ),
+            if (role == 1)
+              Row(
+                children: [
+                  FloatingActionButton.extended(
+                    label: Text('Új projekt létrehozása'),
+                    heroTag: null,
+                    onPressed: () {
+                      _expandableFabKey.currentState?.close();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateProjectScreen(),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.add),
+                  ),
+                ],
+              ),
+          ],
         ),
       ),
     );

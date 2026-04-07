@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:okoskert_internal/core/utils/services/project_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/projects/create_project/editable_chip_field.dart';

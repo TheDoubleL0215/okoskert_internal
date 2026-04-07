@@ -11,8 +11,12 @@ import 'package:provider/provider.dart';
 class EditWorklogBottomSheet extends StatefulWidget {
   final WorklogItemModel item;
 
-  const EditWorklogBottomSheet({super.key, required this.item});
-
+  const EditWorklogBottomSheet({
+    super.key,
+    required this.item,
+    required this.isEditable,
+  });
+  final bool isEditable;
   @override
   State<EditWorklogBottomSheet> createState() => EditWorklogBottomSheetState();
 }
@@ -363,7 +367,9 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               Row(
                 children: [
                   Text(
-                    'Bejegyzés szerkesztése',
+                    widget.isEditable
+                        ? 'Bejegyzés szerkesztése'
+                        : 'Bejegyzés részletei',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -382,13 +388,13 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _startTimeController,
-                      readOnly: true,
+                      readOnly: !widget.isEditable,
                       decoration: const InputDecoration(
                         labelText: 'Kezdés',
                         border: OutlineInputBorder(),
                         suffixIcon: Icon(Icons.calendar_today),
                       ),
-                      onTap: _selectStartTime,
+                      onTap: widget.isEditable ? _selectStartTime : null,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -396,13 +402,13 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _endTimeController,
-                      readOnly: true,
+                      readOnly: !widget.isEditable,
                       decoration: const InputDecoration(
                         labelText: 'Vége',
                         border: OutlineInputBorder(),
                         suffixIcon: Icon(Icons.calendar_today),
                       ),
-                      onTap: _selectEndTime,
+                      onTap: widget.isEditable ? _selectEndTime : null,
                     ),
                   ),
                 ],
@@ -412,6 +418,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               // Szünet mező
               TextFormField(
                 controller: _breakMinutesController,
+                readOnly: !widget.isEditable,
                 decoration: const InputDecoration(
                   labelText: 'Szünet (perc)',
                   border: OutlineInputBorder(),
@@ -422,13 +429,13 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               // Dátum választó
               TextFormField(
                 controller: _dateController,
-                readOnly: true,
+                readOnly: !widget.isEditable,
                 decoration: const InputDecoration(
                   labelText: 'Dátum',
                   border: OutlineInputBorder(),
                   suffixIcon: Icon(Icons.calendar_today),
                 ),
-                onTap: _selectDate,
+                onTap: widget.isEditable ? _selectDate : null,
               ),
               const SizedBox(height: 16),
               // Leírás mező
@@ -436,6 +443,7 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                 maxLines: 2,
                 textCapitalization: TextCapitalization.sentences,
                 controller: _descriptionController,
+                readOnly: !widget.isEditable,
                 decoration: const InputDecoration(
                   labelText: 'Leírás',
                   border: OutlineInputBorder(),
@@ -444,35 +452,37 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
               ),
               const SizedBox(height: 24),
               // Mentés gomb
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: _isSaving ? null : _saveChanges,
-                child:
-                    _isSaving
-                        ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+              if (widget.isEditable)
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: _isSaving ? null : _saveChanges,
+                  child:
+                      _isSaving
+                          ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
-                          ),
-                        )
-                        : const Text('Mentés'),
-              ),
+                          )
+                          : const Text('Mentés'),
+                ),
               const SizedBox(height: 8),
               // Törlés gomb
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              if (widget.isEditable)
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: _isSaving ? null : _deleteEntry,
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Törlés'),
                 ),
-                onPressed: _isSaving ? null : _deleteEntry,
-                icon: const Icon(Icons.delete),
-                label: const Text('Törlés'),
-              ),
             ],
           ),
         ),

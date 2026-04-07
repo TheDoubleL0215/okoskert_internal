@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/core/utils/services/employee_service.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/calendar/add_calendar_post_screen.dart';
 import 'package:okoskert_internal/features/calendar/ui/event_details_bottom_sheet.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -54,12 +56,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _showEventDetailsBottomSheet(Map<String, dynamic> event) {
-    EventDetailsBottomSheet.show(context, event);
+  void _showEventDetailsBottomSheet(
+    Map<String, dynamic> event,
+    bool isEditable,
+  ) {
+    EventDetailsBottomSheet.show(context, event, isEditable);
   }
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     return Scaffold(
       appBar: AppBar(title: const Text('Naptár')),
       body: FutureBuilder<String?>(
@@ -145,7 +152,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         return _EventsListWidget(
                           selectedDay: selectedDay,
                           selectedDayEvents: events,
-                          onEventTap: _showEventDetailsBottomSheet,
+                          onEventTap:
+                              (event) => _showEventDetailsBottomSheet(
+                                event,
+                                role != 3,
+                              ),
                         );
                       },
                     ),
@@ -156,10 +167,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddEventBottomSheet,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton:
+          role != 3
+              ? FloatingActionButton(
+                onPressed: _showAddEventBottomSheet,
+                child: const Icon(Icons.add),
+              )
+              : null,
     );
   }
 }

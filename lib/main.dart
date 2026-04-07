@@ -1,11 +1,15 @@
+import 'dart:ui';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:okoskert_internal/app/home_screen.dart';
 import 'package:okoskert_internal/app/app_theme.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/app/theme_provider.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/data/services/employee_name_service.dart';
@@ -21,9 +25,20 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('hu_HU', null);
+  // 1. Capture all errors that happen within the Flutter framework
+  FlutterError.onError = (errorDetails) {
+    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+  };
+
+  // 2. Capture all asynchronous errors that aren't caught by Flutter
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (context) => SessionProvider()..start()),
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => WorkspaceProvider()),
       ],

@@ -87,22 +87,6 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
     return raw.map((e) => e.toString()).toList();
   }
 
-  /// Érintő időpontok (pl. vége 12:00, másik kezdete 12:00) nem számítanak átfedésnek.
-  bool _intervalsOverlap(
-    DateTime startA,
-    DateTime endA,
-    DateTime startB,
-    DateTime endB,
-  ) {
-    return startA.isBefore(endB) && startB.isBefore(endA);
-  }
-
-  DateTime? _readFirestoreDateTime(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    return null;
-  }
-
   Future<void> _saveWorkLog() async {
     if (_timeEntries.isEmpty) {
       if (!mounted) return;
@@ -174,42 +158,6 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
       }
     }
 
-    for (var i = 0; i < _timeEntries.length; i++) {
-      final startA = _parseTimeString(
-        _timeEntries[i]['startTime'] as String,
-        _selectedDate,
-      );
-      final endA = _parseTimeString(
-        _timeEntries[i]['endTime'] as String,
-        _selectedDate,
-      );
-      final idsA = _employeeIdsFromEntry(_timeEntries[i]).toSet();
-      for (var j = i + 1; j < _timeEntries.length; j++) {
-        final idsB = _employeeIdsFromEntry(_timeEntries[j]).toSet();
-        if (!idsA.any(idsB.contains)) continue;
-        final startB = _parseTimeString(
-          _timeEntries[j]['startTime'] as String,
-          _selectedDate,
-        );
-        final endB = _parseTimeString(
-          _timeEntries[j]['endTime'] as String,
-          _selectedDate,
-        );
-        if (_intervalsOverlap(startA, endA, startB, endB)) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'A ${i + 1}. és a ${j + 1}. időbejegyzés átfedi egymás idejét '
-                'legalább egy közös dolgozónál.',
-              ),
-            ),
-          );
-          return;
-        }
-      }
-    }
-
     final teamId = await UserService.getTeamId();
     if (teamId == null || teamId.isEmpty) {
       if (!mounted) return;
@@ -245,86 +193,9 @@ class _ProjectAddDataColleguesState extends State<ProjectAddDataCollegues> {
       _selectedDate.month,
       _selectedDate.day,
     );
-    final targetDateTimestamp = Timestamp.fromDate(plainDate);
-
-    final recordsToDeleteById =
-        <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
-    final conflictingEntryIndices = <int>{};
-
-    for (var i = 0; i < _timeEntries.length; i++) {
-      final entry = _timeEntries[i];
-      final newStart = _parseTimeString(
-        entry['startTime'] as String,
-        _selectedDate,
-      );
-      final newEnd = _parseTimeString(
-        entry['endTime'] as String,
-        _selectedDate,
-      );
-
-      for (final employeeId in _employeeIdsFromEntry(entry)) {
-        if (employeeId.isEmpty) continue;
-
-        final existing =
-            await worklogRef
-                .where('employeeId', isEqualTo: employeeId)
-                .where('date', isEqualTo: targetDateTimestamp)
-                .get();
-
-        for (final doc in existing.docs) {
-          final data = doc.data();
-          final pid = data['assignedProjectId'] as String?;
-          if (pid != widget.projectId) continue;
-
-          final exStart = _readFirestoreDateTime(data['startTime']);
-          final exEnd = _readFirestoreDateTime(data['endTime']);
-          if (exStart == null || exEnd == null) continue;
-
-          if (!_intervalsOverlap(newStart, newEnd, exStart, exEnd)) continue;
-
-          recordsToDeleteById[doc.id] = doc;
-          conflictingEntryIndices.add(i);
-        }
-      }
-    }
-
-    if (recordsToDeleteById.isNotEmpty) {
-      if (!mounted) return;
-
-      final shouldOverwrite = await showDialog<bool>(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: const Text('Átfedő idősáv'),
-              content: Text(
-                conflictingEntryIndices.length == 1
-                    ? 'A ${conflictingEntryIndices.first + 1}. időbejegyzéshez kiválasztott dolgozó(k)nak már van erre a napra, ebben a projektben olyan munkanapló sora, amelynek ideje átfedi az új idősávot (${_formatDate(_selectedDate)}).\n\nFelülírod az átfedő meglévő bejegyzéseket?'
-                    : 'Több időbejegyzéshez is található átfedő meglévő munkanapló sor ebben a projektben (${_formatDate(_selectedDate)}).\n\nFelülírod ezeket az átfedő bejegyzéseket?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Mégse'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Felülírás'),
-                ),
-              ],
-            ),
-      );
-
-      if (shouldOverwrite != true) {
-        return;
-      }
-    }
 
     try {
       final batch = FirebaseFirestore.instance.batch();
-
-      for (final doc in recordsToDeleteById.values) {
-        batch.delete(doc.reference);
-      }
 
       for (final entry in _timeEntries) {
         final startTimeString = entry['startTime'] as String;

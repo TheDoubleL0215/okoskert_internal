@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/data/services/employee_name_service.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueWorklogEntryEdit.dart';
-import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ProjectAddDataCollegues.dart';
+import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/project_create_worklog_screen.dart';
 import 'package:okoskert_internal/features/worklog/models/worklog_item_model.dart';
 import 'package:okoskert_internal/shared/widgets/worklog_entry_tile.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +28,8 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     final wp = context.watch<WorkspaceProvider>();
     final workspaceRef = wp.workspaceRef;
 
@@ -59,41 +62,45 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
     }
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: _fabHeroTag,
-        label: Text(
-          _selectedSegment == 1
-              ? 'Új gépmunkaidő hozzáadása!'
-              : 'Új bejegyzés hozzáadása',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        onPressed: () {
-          if (_selectedSegment == 1) {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder:
-                  (_) => _AddMachineWorklogBottomSheet(
-                    workspaceRef: workspaceRef,
-                    projectId: widget.projectId,
-                  ),
-            );
-            return;
-          }
+      floatingActionButton:
+          role != 3
+              ? FloatingActionButton.extended(
+                heroTag: _fabHeroTag,
+                label: Text(
+                  _selectedSegment == 1
+                      ? 'Új gépmunkaidő hozzáadása'
+                      : 'Új bejegyzés hozzáadása',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  if (_selectedSegment == 1) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder:
+                          (_) => _AddMachineWorklogBottomSheet(
+                            workspaceRef: workspaceRef,
+                            projectId: widget.projectId,
+                          ),
+                    );
+                    return;
+                  }
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) =>
-                      ProjectAddDataCollegues(projectId: widget.projectId),
-            ),
-          );
-        },
-        icon: Icon(
-          _selectedSegment == 1 ? Icons.agriculture : Icons.person_add,
-        ),
-      ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ProjectAddDataCollegues(
+                            projectId: widget.projectId,
+                          ),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  _selectedSegment == 1 ? Icons.agriculture : Icons.person_add,
+                ),
+              )
+              : null,
       body: Column(
         children: [
           Padding(
@@ -125,231 +132,229 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
             ),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 72),
-              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream:
-                    (() {
-                      Query<Map<String, dynamic>> query = workspaceRef
-                          .collection('worklogs')
-                          .where(
-                            'assignedProjectId',
-                            isEqualTo: widget.projectId,
-                          );
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream:
+                  (() {
+                    Query<Map<String, dynamic>> query = workspaceRef
+                        .collection('worklogs')
+                        .where(
+                          'assignedProjectId',
+                          isEqualTo: widget.projectId,
+                        );
 
-                      if (_selectedSegment == 1) {
-                        query = query.where('type', isEqualTo: 'machines');
-                      }
-
-                      return query.snapshots();
-                    })(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    debugPrint(
-                      'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
-                    );
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final allWorklogDocs = snapshot.data?.docs ?? [];
-                  final worklogDocs =
-                      allWorklogDocs.where((doc) {
-                        final type = doc.data()['type'] as String?;
-                        if (_selectedSegment == 1) {
-                          return type == 'machines';
-                        }
-                        return type != 'machines';
-                      }).toList();
-
-                  if (worklogDocs.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Még nincsenek munkanapló bejegyzések',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    );
-                  }
-
-                  final groupedByDate =
-                      <
-                        String,
-                        List<QueryDocumentSnapshot<Map<String, dynamic>>>
-                      >{};
-
-                  for (final doc in worklogDocs) {
-                    final data = doc.data();
-                    final date = data['date'] as Timestamp?;
-                    if (date != null) {
-                      final dateKey = _getDateKey(date.toDate());
-                      groupedByDate.putIfAbsent(dateKey, () => []).add(doc);
+                    if (_selectedSegment == 1) {
+                      query = query.where('type', isEqualTo: 'machines');
                     }
-                  }
 
-                  final sortedDates =
-                      groupedByDate.keys.toList()
-                        ..sort((a, b) => b.compareTo(a));
+                    return query.snapshots();
+                  })(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                  final items = <_WorklogItem>[];
-                  for (final dateKey in sortedDates) {
-                    items.add(_WorklogItem.isHeader(dateKey));
-                    for (final doc in groupedByDate[dateKey]!) {
-                      items.add(_WorklogItem.isEntry(doc));
-                    }
-                  }
-
-                  final employeeIds =
-                      _selectedSegment == 1
-                          ? <String>[]
-                          : worklogDocs
-                              .map(
-                                (d) =>
-                                    (d.data()['employeeId'] ??
-                                            d.data()['employeeName'] ??
-                                            '')
-                                        as String,
-                              )
-                              .where((s) => s.isNotEmpty)
-                              .toSet()
-                              .toList();
-                  final machineIds =
-                      _selectedSegment == 1
-                          ? worklogDocs
-                              .map(
-                                (d) => (d.data()['machineId'] ?? '') as String,
-                              )
-                              .where((s) => s.isNotEmpty)
-                              .toSet()
-                              .toList()
-                          : <String>[];
-
-                  return FutureBuilder<Map<String, String>>(
-                    future:
-                        _selectedSegment == 1
-                            ? _getMachineNamesByIds(machineIds)
-                            : EmployeeNameService.getEmployeeNames(employeeIds),
-                    builder: (context, nameSnap) {
-                      if (nameSnap.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final names = nameSnap.data ?? {};
-                      return ListView.separated(
-                        separatorBuilder:
-                            (_, __) => const Divider(thickness: 1, height: 0),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final item = items[index];
-
-                          if (item.isHeader) {
-                            final dateParts = item.dateKey!.split('-');
-                            final formattedDate =
-                                '${dateParts[0]}. ${dateParts[1]}. ${dateParts[2]}.';
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainer,
-                              ),
-                              child: Text(
-                                formattedDate,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            );
-                          }
-
-                          final doc = item.doc!;
-                          final data = doc.data();
-
-                          final isMachineEntry =
-                              (data['type'] as String?) == 'machines';
-                          final employeeId =
-                              isMachineEntry
-                                  ? (data['machineId'] as String? ?? '')
-                                  : (data['employeeId'] ??
-                                          data['employeeName'] ??
-                                          '')
-                                      as String;
-                          final fallbackName =
-                              isMachineEntry
-                                  ? (data['machineName'] as String? ??
-                                      'Ismeretlen gép')
-                                  : 'Ismeretlen';
-                          final employeeName =
-                              employeeId.isEmpty
-                                  ? fallbackName
-                                  : (names[employeeId] ?? fallbackName);
-                          final startTime = data['startTime'] as Timestamp?;
-                          final endTime = data['endTime'] as Timestamp?;
-                          final breakMinutes =
-                              data['breakMinutes'] as int? ?? 0;
-                          final date = data['date'] as Timestamp?;
-                          final description =
-                              data['description'] as String? ?? '';
-                          final projectId =
-                              data['assignedProjectId'] as String? ?? '';
-                          final worklogViewItem = WorklogItemModel(
-                            id: doc.id,
-                            employeeName: employeeName,
-                            employeeId: employeeId,
-                            projectId: projectId,
-                            date: date?.toDate() ?? DateTime.now(),
-                            workedMinutes:
-                                startTime
-                                    ?.toDate()
-                                    .difference(
-                                      endTime?.toDate() ?? DateTime.now(),
-                                    )
-                                    .inMinutes ??
-                                0,
-                            startTime: startTime?.toDate() ?? DateTime.now(),
-                            endTime: endTime?.toDate() ?? DateTime.now(),
-                            breakMinutes: breakMinutes,
-                            description: description,
-                          );
-
-                          return WorklogEntryTile(
-                            item: worklogViewItem,
-                            onTap:
-                                () => showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  builder:
-                                      (context) => EditWorklogBottomSheet(
-                                        item: worklogViewItem,
-                                      ),
-                                ),
-                          );
-                        },
-                      );
-                    },
+                if (snapshot.hasError) {
+                  debugPrint(
+                    'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
                   );
-                },
-              ),
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Hiba történt a munkanapló betöltésekor: ${snapshot.error}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
+                final allWorklogDocs = snapshot.data?.docs ?? [];
+                final worklogDocs =
+                    allWorklogDocs.where((doc) {
+                      final type = doc.data()['type'] as String?;
+                      if (_selectedSegment == 1) {
+                        return type == 'machines';
+                      }
+                      return type != 'machines';
+                    }).toList();
+
+                if (worklogDocs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Még nincsenek munkanapló bejegyzések',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
+
+                final groupedByDate =
+                    <
+                      String,
+                      List<QueryDocumentSnapshot<Map<String, dynamic>>>
+                    >{};
+
+                for (final doc in worklogDocs) {
+                  final data = doc.data();
+                  final date = data['date'] as Timestamp?;
+                  if (date != null) {
+                    final dateKey = _getDateKey(date.toDate());
+                    groupedByDate.putIfAbsent(dateKey, () => []).add(doc);
+                  }
+                }
+
+                final sortedDates =
+                    groupedByDate.keys.toList()..sort((a, b) => b.compareTo(a));
+
+                final items = <_WorklogItem>[];
+                for (final dateKey in sortedDates) {
+                  items.add(_WorklogItem.isHeader(dateKey));
+                  for (final doc in groupedByDate[dateKey]!) {
+                    items.add(_WorklogItem.isEntry(doc));
+                  }
+                }
+
+                final employeeIds =
+                    _selectedSegment == 1
+                        ? <String>[]
+                        : worklogDocs
+                            .map(
+                              (d) =>
+                                  (d.data()['employeeId'] ??
+                                          d.data()['employeeName'] ??
+                                          '')
+                                      as String,
+                            )
+                            .where((s) => s.isNotEmpty)
+                            .toSet()
+                            .toList();
+                final machineIds =
+                    _selectedSegment == 1
+                        ? worklogDocs
+                            .map((d) => (d.data()['machineId'] ?? '') as String)
+                            .where((s) => s.isNotEmpty)
+                            .toSet()
+                            .toList()
+                        : <String>[];
+
+                return FutureBuilder<Map<String, String>>(
+                  future:
+                      _selectedSegment == 1
+                          ? _getMachineNamesByIds(machineIds)
+                          : EmployeeNameService.getEmployeeNames(employeeIds),
+                  builder: (context, nameSnap) {
+                    if (nameSnap.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final names = nameSnap.data ?? {};
+                    final listBottomInset =
+                        MediaQuery.paddingOf(context).bottom +
+                        (role != 3 ? 88 : 16);
+                    return ListView.separated(
+                      padding: EdgeInsets.only(bottom: listBottomInset),
+                      separatorBuilder:
+                          (_, __) => const Divider(thickness: 1, height: 0),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+
+                        if (item.isHeader) {
+                          final dateParts = item.dateKey!.split('-');
+                          final formattedDate =
+                              '${dateParts[0]}. ${dateParts[1]}. ${dateParts[2]}.';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainer,
+                            ),
+                            child: Text(
+                              formattedDate,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          );
+                        }
+
+                        final doc = item.doc!;
+                        final data = doc.data();
+
+                        final isMachineEntry =
+                            (data['type'] as String?) == 'machines';
+                        final employeeId =
+                            isMachineEntry
+                                ? (data['machineId'] as String? ?? '')
+                                : (data['employeeId'] ??
+                                        data['employeeName'] ??
+                                        '')
+                                    as String;
+                        final fallbackName =
+                            isMachineEntry
+                                ? (data['machineName'] as String? ??
+                                    'Ismeretlen gép')
+                                : 'Ismeretlen';
+                        final employeeName =
+                            employeeId.isEmpty
+                                ? fallbackName
+                                : (names[employeeId] ?? fallbackName);
+                        final startTime = data['startTime'] as Timestamp?;
+                        final endTime = data['endTime'] as Timestamp?;
+                        final breakMinutes = data['breakMinutes'] as int? ?? 0;
+                        final date = data['date'] as Timestamp?;
+                        final description =
+                            data['description'] as String? ?? '';
+                        final projectId =
+                            data['assignedProjectId'] as String? ?? '';
+                        final worklogViewItem = WorklogItemModel(
+                          id: doc.id,
+                          employeeName: employeeName,
+                          employeeId: employeeId,
+                          projectId: projectId,
+                          date: date?.toDate() ?? DateTime.now(),
+                          workedMinutes:
+                              startTime
+                                  ?.toDate()
+                                  .difference(
+                                    endTime?.toDate() ?? DateTime.now(),
+                                  )
+                                  .inMinutes ??
+                              0,
+                          startTime: startTime?.toDate() ?? DateTime.now(),
+                          endTime: endTime?.toDate() ?? DateTime.now(),
+                          breakMinutes: breakMinutes,
+                          description: description,
+                        );
+
+                        return WorklogEntryTile(
+                          item: worklogViewItem,
+                          onTap:
+                              () => showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder:
+                                    (context) => EditWorklogBottomSheet(
+                                      isEditable: role != 3,
+                                      item: worklogViewItem,
+                                    ),
+                              ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -417,8 +422,10 @@ class _AddMachineWorklogBottomSheetState
     extends State<_AddMachineWorklogBottomSheet> {
   late final Future<String?> _teamIdFuture;
   final Map<String, String> _selectedMachines = {};
+  late DateTime _selectedDate;
   late DateTime _selectedStartTime;
   late DateTime _selectedEndTime;
+  final TextEditingController _dateController = TextEditingController();
   final TextEditingController _startTimeController = TextEditingController();
   final TextEditingController _endTimeController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -429,18 +436,60 @@ class _AddMachineWorklogBottomSheetState
     super.initState();
     _teamIdFuture = UserService.getTeamId();
     final now = DateTime.now();
-    _selectedStartTime = DateTime(now.year, now.month, now.day, now.hour, 0);
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _selectedStartTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      now.hour,
+      0,
+    );
     _selectedEndTime = _selectedStartTime.add(const Duration(hours: 1));
+    _dateController.text = _formatDate(_selectedDate);
     _startTimeController.text = _formatTime(_selectedStartTime);
     _endTimeController.text = _formatTime(_selectedEndTime);
   }
 
   @override
   void dispose() {
+    _dateController.dispose();
     _startTimeController.dispose();
     _endTimeController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}. ${date.month.toString().padLeft(2, '0')}. ${date.day.toString().padLeft(2, '0')}.';
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      selectableDayPredicate: (date) => date.isBefore(DateTime.now()),
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _selectedDate = DateTime(picked.year, picked.month, picked.day);
+      _dateController.text = _formatDate(_selectedDate);
+      _selectedStartTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedStartTime.hour,
+        _selectedStartTime.minute,
+      );
+      _selectedEndTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedEndTime.hour,
+        _selectedEndTime.minute,
+      );
+    });
   }
 
   String _formatTime(DateTime dateTime) {
@@ -516,9 +565,9 @@ class _AddMachineWorklogBottomSheetState
     setState(() => _isSaving = true);
 
     final dateOnly = DateTime(
-      _selectedStartTime.year,
-      _selectedStartTime.month,
-      _selectedStartTime.day,
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
     );
 
     try {
@@ -700,6 +749,8 @@ class _AddMachineWorklogBottomSheetState
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -718,7 +769,9 @@ class _AddMachineWorklogBottomSheetState
                 child: Row(
                   children: [
                     Text(
-                      'Új gépmunkaidő',
+                      role != 3
+                          ? 'Gépmunkaidő szerkesztése'
+                          : 'Gépmunkaidő részletei',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -822,6 +875,17 @@ class _AddMachineWorklogBottomSheetState
                 },
               ),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: _dateController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Dátum',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today_outlined),
+                ),
+                onTap: _selectDate,
+              ),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -838,9 +902,9 @@ class _AddMachineWorklogBottomSheetState
                           onSelected: (picked) {
                             setState(() {
                               _selectedStartTime = DateTime(
-                                _selectedStartTime.year,
-                                _selectedStartTime.month,
-                                _selectedStartTime.day,
+                                _selectedDate.year,
+                                _selectedDate.month,
+                                _selectedDate.day,
                                 picked.hour,
                                 picked.minute,
                               );
@@ -868,9 +932,9 @@ class _AddMachineWorklogBottomSheetState
                           onSelected: (picked) {
                             setState(() {
                               _selectedEndTime = DateTime(
-                                _selectedEndTime.year,
-                                _selectedEndTime.month,
-                                _selectedEndTime.day,
+                                _selectedDate.year,
+                                _selectedDate.month,
+                                _selectedDate.day,
                                 picked.hour,
                                 picked.minute,
                               );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/core/utils/services/employee_service.dart';
 import 'package:okoskert_internal/core/utils/services/project_service.dart';
@@ -17,6 +18,7 @@ class WorklogScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final wp = context.watch<WorkspaceProvider>();
     final workspaceRef = wp.workspaceRef;
+    final session = context.watch<SessionProvider>();
 
     if (wp.isLoading || workspaceRef == null) {
       if (wp.error != null && !wp.isLoading) {
@@ -63,7 +65,9 @@ class WorklogScreen extends StatelessWidget {
     }
 
     return ChangeNotifierProvider<WorklogViewModel>(
-      create: (_) => WorklogViewModel(workspaceProvider: wp),
+      create:
+          (_) =>
+              WorklogViewModel(workspaceProvider: wp, sessionProvider: session),
       child: const _WorklogView(),
     );
   }
@@ -137,6 +141,7 @@ class _WorklogView extends StatelessWidget {
                                   () => viewModel.showEditWorklogBottomSheet(
                                     context,
                                     item.log!,
+                                    viewModel.role != 3,
                                   ),
                             );
                           },
@@ -146,20 +151,23 @@ class _WorklogView extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        label: const Text(
-          'Új bejegyzés hozzáadása',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        onPressed:
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CreateNewWorklogScreen(),
-              ),
-            ),
-        icon: const Icon(Icons.add),
-      ),
+      floatingActionButton:
+          viewModel.role != 3
+              ? FloatingActionButton.extended(
+                label: const Text(
+                  'Új bejegyzés hozzáadása',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateNewWorklogScreen(),
+                      ),
+                    ),
+                icon: const Icon(Icons.add),
+              )
+              : null,
     );
   }
 }

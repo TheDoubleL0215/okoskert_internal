@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/data/services/get_worklog_summary.dart';
 import 'package:okoskert_internal/features/projects/create_project/create_project_screen.dart';
@@ -13,6 +14,7 @@ import 'package:okoskert_internal/features/projects/project_details/description_
 import 'package:okoskert_internal/features/projects/project_details/ui/ProjectStatusChip.dart';
 import 'package:okoskert_internal/features/warehouse/ui/material_details_bottom_sheet.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:provider/provider.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
   final String projectId;
@@ -31,39 +33,33 @@ class ProjectDetailsScreen extends StatefulWidget {
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.projectName),
         actions: [
-          FutureBuilder<int?>(
-            future: UserService.getRole(),
-            builder: (context, roleSnapshot) {
-              final role = roleSnapshot.data;
-              if (role == 1) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: CircleAvatar(
-                    child: IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => CreateProjectScreen(
-                                  projectId: widget.projectId,
-                                ),
-                          ),
-                        );
-                        // No need to refresh manually — StreamBuilder handles it.
-                      },
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+          if (role == 1)
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                child: IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => CreateProjectScreen(
+                              projectId: widget.projectId,
+                            ),
+                      ),
+                    );
+                    // No need to refresh manually — StreamBuilder handles it.
+                  },
+                ),
+              ),
+            ),
         ],
       ),
 
@@ -115,6 +111,8 @@ class ProjectDetailsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
@@ -158,6 +156,7 @@ class ProjectDetailsContent extends StatelessWidget {
 
                   padding16(
                     ProjectStatusChip(
+                      isEditable: role != 3,
                       context: context,
                       projectId: projectId,
                       currentStatus:
@@ -226,24 +225,29 @@ class ProjectDetailsContent extends StatelessWidget {
           ),
 
           // Bottom buttons
-          padding16(
-            Column(
-              children: [
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () => _exportProjectData(context, projectId),
-                  icon: const Icon(Icons.download),
-                  label: const Text(
-                    'Projekt adatainak exportálása',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          if (role != 3) ...[
+            padding16(
+              Column(
+                children: [
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => _exportProjectData(context, projectId),
+                    icon: const Icon(Icons.download),
+                    label: const Text(
+                      'Projekt adatainak exportálása',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
                   ),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

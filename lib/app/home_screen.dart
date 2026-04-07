@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/features/admin/admin_screen.dart';
 import 'package:okoskert_internal/features/projects/projects_collector_screen.dart';
 import 'package:okoskert_internal/features/calendar/calendar_screen.dart';
 import 'package:okoskert_internal/app/profile_screen.dart';
 import 'package:okoskert_internal/features/worklog/view/worklog_screen.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,32 +20,27 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<int?>(
-      future: UserService.getRole(),
-      builder: (context, roleSnapshot) {
-        final role = roleSnapshot.data;
-        final isAdmin = role == 1;
+    final session = context.watch<SessionProvider>();
+    final isAdmin = session.role == 1;
 
-        final pages = <Widget>[
-          const Projectscollectorscreen(),
-          const WorklogScreen(),
-          const CalendarScreen(),
-          isAdmin ? const AdminPage() : const ProfilePage(),
-        ];
+    final pages = <Widget>[
+      const Projectscollectorscreen(),
+      const WorklogScreen(),
+      const CalendarScreen(),
+      isAdmin ? const AdminPage() : const ProfilePage(),
+    ];
 
-        return Scaffold(
-          body: pages[currentPageIndex],
-          bottomNavigationBar: _HomeBottomNavBar(
-            currentIndex: currentPageIndex,
-            isAdmin: isAdmin,
-            onIndexSelected: (int index) {
-              setState(() {
-                currentPageIndex = index;
-              });
-            },
-          ),
-        );
-      },
+    return Scaffold(
+      body: pages[currentPageIndex],
+      bottomNavigationBar: _HomeBottomNavBar(
+        currentIndex: currentPageIndex,
+        isAdmin: isAdmin,
+        onIndexSelected: (int index) {
+          setState(() {
+            currentPageIndex = index;
+          });
+        },
+      ),
     );
   }
 }

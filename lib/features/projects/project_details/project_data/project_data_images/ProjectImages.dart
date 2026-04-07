@@ -8,9 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/data/services/employee_name_service.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:provider/provider.dart';
 
 typedef _DiaryViewData =
     ({
@@ -214,6 +216,8 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionProvider>();
+    final role = session.role;
     final colorScheme = Theme.of(context).colorScheme;
 
     final scrollBottomPad =
@@ -301,128 +305,133 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
             },
           ),
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Material(
-              borderRadius: const BorderRadius.all(Radius.circular(24)),
-              elevation: 8,
-              shadowColor: Colors.black26,
-              color: colorScheme.surfaceContainerHighest,
-              child: SafeArea(
-                top: false,
-                minimum: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_attachments.isNotEmpty) ...[
-                        SizedBox(
-                          height: 88,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _attachments.length,
-                            separatorBuilder:
-                                (_, __) => const SizedBox(width: 8),
-                            itemBuilder: (context, index) {
-                              final file = _attachments[index];
-                              return _AttachmentThumb(
-                                file: file,
-                                onRemove: () => _removeAttachment(index),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          'Bejegyzés dátuma',
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                        subtitle: Text(
-                          _postDateOnlyFmt.format(_postDate),
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        leading: const Icon(LucideIcons.calendarDays, size: 22),
-                        onTap: _isSending ? null : _pickPostDate,
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _textController,
-                        focusNode: _textFocusNode,
-                        minLines: 1,
-                        maxLines: 6,
-                        enabled: !_isSending,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: 'Poszt szövege…',
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          errorBorder: InputBorder.none,
-                          focusedErrorBorder: InputBorder.none,
-                          disabledBorder: InputBorder.none,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            style: IconButton.styleFrom(
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.all(8),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            onPressed: _isSending ? null : _pickImages,
-                            icon: const Icon(LucideIcons.imagePlus, size: 28),
-                          ),
-                          const Spacer(),
-                          InkWell(
-                            onTap: _isSending ? null : _send,
-                            borderRadius: BorderRadius.circular(28),
-                            child: Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: colorScheme.primaryContainer,
-                              ),
-                              child: Center(
-                                child:
-                                    _isSending
-                                        ? SizedBox(
-                                          width: 22,
-                                          height: 22,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: colorScheme.primary,
-                                          ),
-                                        )
-                                        : const Icon(
-                                          Icons.send_rounded,
-                                          size: 24,
-                                        ),
-                              ),
+        if (role != 3) ...[
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Material(
+                borderRadius: const BorderRadius.all(Radius.circular(24)),
+                elevation: 8,
+                shadowColor: Colors.black26,
+                color: colorScheme.surfaceContainerHighest,
+                child: SafeArea(
+                  top: false,
+                  minimum: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_attachments.isNotEmpty) ...[
+                          SizedBox(
+                            height: 88,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _attachments.length,
+                              separatorBuilder:
+                                  (_, __) => const SizedBox(width: 8),
+                              itemBuilder: (context, index) {
+                                final file = _attachments[index];
+                                return _AttachmentThumb(
+                                  file: file,
+                                  onRemove: () => _removeAttachment(index),
+                                );
+                              },
                             ),
                           ),
                         ],
-                      ),
-                    ],
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          visualDensity: VisualDensity.compact,
+                          title: Text(
+                            'Bejegyzés dátuma',
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
+                          ),
+                          subtitle: Text(
+                            _postDateOnlyFmt.format(_postDate),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          leading: const Icon(
+                            LucideIcons.calendarDays,
+                            size: 22,
+                          ),
+                          onTap: _isSending ? null : _pickPostDate,
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _textController,
+                          focusNode: _textFocusNode,
+                          minLines: 1,
+                          maxLines: 6,
+                          enabled: !_isSending,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            hintText: 'Poszt szövege…',
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              style: IconButton.styleFrom(
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                padding: const EdgeInsets.all(8),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              onPressed: _isSending ? null : _pickImages,
+                              icon: const Icon(LucideIcons.imagePlus, size: 28),
+                            ),
+                            const Spacer(),
+                            InkWell(
+                              onTap: _isSending ? null : _send,
+                              borderRadius: BorderRadius.circular(28),
+                              child: Container(
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: colorScheme.primaryContainer,
+                                ),
+                                child: Center(
+                                  child:
+                                      _isSending
+                                          ? SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: colorScheme.primary,
+                                            ),
+                                          )
+                                          : const Icon(
+                                            Icons.send_rounded,
+                                            size: 24,
+                                          ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

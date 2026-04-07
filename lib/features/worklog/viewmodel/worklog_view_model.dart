@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/project_data_collegues/ColleagueWorklogEntryEdit.dart';
@@ -16,13 +17,16 @@ import 'package:okoskert_internal/features/worklog/services/worklog_stream.dart'
 /// - szűrők (dátum, kollégák, projektek) kezelése
 /// - szűrt lista előállítása
 class WorklogViewModel extends ChangeNotifier {
-  WorklogViewModel({required WorkspaceProvider workspaceProvider})
-    : _workspaceProvider = workspaceProvider {
+  WorklogViewModel({
+    required WorkspaceProvider workspaceProvider,
+    required SessionProvider sessionProvider,
+  }) : _workspaceProvider = workspaceProvider,
+       _sessionProvider = sessionProvider {
     _init();
   }
 
   final WorkspaceProvider _workspaceProvider;
-
+  final SessionProvider _sessionProvider;
   String? _teamId;
   String? _error;
   bool _isLoading = false;
@@ -71,6 +75,8 @@ class WorklogViewModel extends ChangeNotifier {
   DateTime? get filterStartDate => _filterStartDate;
   DateTime? get filterEndDate => _filterEndDate;
 
+  int? get role => _sessionProvider.role;
+
   bool get hasActiveFilters =>
       _selectedProjectIds.isNotEmpty ||
       _selectedEmployeeIds.isNotEmpty ||
@@ -102,11 +108,17 @@ class WorklogViewModel extends ChangeNotifier {
     }
   }
 
-  void showEditWorklogBottomSheet(BuildContext context, WorklogItemModel item) {
+  void showEditWorklogBottomSheet(
+    BuildContext context,
+    WorklogItemModel item,
+    bool isEditable,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => EditWorklogBottomSheet(item: item),
+      builder:
+          (context) =>
+              EditWorklogBottomSheet(item: item, isEditable: isEditable),
     );
   }
 

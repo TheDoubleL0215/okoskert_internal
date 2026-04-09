@@ -1,7 +1,12 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:okoskert_internal/core/utils/login_error_messages.dart';
+import 'package:okoskert_internal/features/auth/create_new_workspace_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _accessCodeController = TextEditingController();
   final _nameController = TextEditingController();
   String _selectedMode = 'Bejelentkezés';
   bool _isLoading = false;
@@ -27,9 +31,102 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _accessCodeController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  static const String _invitationUrl =
+      'https://createinvitation-pyj4oehjla-uc.a.run.app';
+
+  Future<bool> _validateInvitationByEmail(String email) async {
+    final response = await http.post(
+      Uri.parse(_invitationUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'action': 'validate'}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Szerver hiba: ${response.statusCode}');
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return body['exists'] == true;
+  }
+
+  Future<bool> _verifyAccessCode(String code) async {
+    final response = await http.post(
+      Uri.parse(_invitationUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'action': 'verifyCode', 'code': code}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Szerver hiba: ${response.statusCode}');
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return body['exists'] == true;
+  }
+
+  Future<bool> _showAccessCodeDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (dialogContext) =>
+              _AccessCodeDialog(onSubmit: _joinWorkspaceWithAccessCode),
+    );
+    return result == true;
+  }
+
+  Future<String?> _joinWorkspaceWithAccessCode(String accessCode) async {
+    final isValidCode = await _verifyAccessCode(accessCode);
+    if (!isValidCode) {
+      return 'A megadott hozzáférési kód nem található';
+    }
+
+    final userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'teamId': accessCode,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+    // A user létrehozása után már hitelesített, így olvasható a workspace.
+    final workspaceQuery =
+        await FirebaseFirestore.instance
+            .collection('workspaces')
+            .where('teamId', isEqualTo: accessCode)
+            .limit(1)
+            .get();
+    if (workspaceQuery.docs.isNotEmpty) {
+      final workspaceDoc = workspaceQuery.docs.first;
+      await workspaceDoc.reference.collection('joinRequests').add({
+        'userId': userCredential.user!.uid,
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'pending',
+      });
+    }
+
+    if (!mounted) return null;
+    setState(() {
+      _successMessage = 'Csatlakozási kérés sikeresen elküldve!';
+      _nameController.clear();
+      _emailController.clear();
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+    });
+    return null;
   }
 
   Future<void> _submitForm() async {
@@ -53,82 +150,36 @@ class _LoginScreenState extends State<LoginScreen> {
         // Sikeres bejelentkezés után az AuthGate automatikusan átvált a HomePage-re
       } else {
         // Regisztráció
-        final accessCode = _accessCodeController.text.trim();
-        debugPrint('accessCode: $accessCode');
-
-        //TODO: Remove this after testing
-        // Ha a hozzáférési kód "CNWS", navigáljunk a CreateNewWorkspaceScreen-re
-        if (accessCode == 'CNWS') {
-          final userCredential = await FirebaseAuth.instance
-              .createUserWithEmailAndPassword(
-                email: _emailController.text.trim(),
-                password: _passwordController.text,
-              );
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .set({
-                'name': _nameController.text.trim(),
-                'email': _emailController.text.trim(),
-                'role': 1,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
+        final email = _emailController.text.trim();
+        final exists = await _validateInvitationByEmail(email);
+        if (exists) {
+          if (!mounted) return;
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => CreateNewWorkspaceScreen(
+                    signupName: _nameController.text.trim(),
+                    signupEmail: email,
+                    signupPassword: _passwordController.text,
+                  ),
+            ),
+          );
           if (!mounted) return;
           setState(() {
             _nameController.clear();
             _emailController.clear();
             _passwordController.clear();
             _confirmPasswordController.clear();
-            _accessCodeController.clear();
           });
           return;
         }
 
-        // Ellenőrizzük, hogy a hozzáférési kód egy workspace teamId-e
-        final workspaceQuery =
-            await FirebaseFirestore.instance
-                .collection('workspaces')
-                .where('teamId', isEqualTo: accessCode)
-                .limit(1)
-                .get();
-        if (workspaceQuery.docs.isNotEmpty) {
-          final userCredential = await FirebaseAuth.instance
-              .createUserWithEmailAndPassword(
-                email: _emailController.text.trim(),
-                password: _passwordController.text,
-              );
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .set({
-                'name': _nameController.text.trim(),
-                'email': _emailController.text.trim(),
-                'teamId': accessCode,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
-          // Ha van egyező workspace, hozzáadjuk a joinRequest-et
-          final workspaceDoc = workspaceQuery.docs.first;
-          await workspaceDoc.reference.collection('joinRequests').add({
-            'userId': userCredential.user!.uid,
-            'name': _nameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'createdAt': FieldValue.serverTimestamp(),
-            'status': 'pending',
-          });
-
-          if (!mounted) return;
-          setState(() {
-            _successMessage = 'Csatlakozási kérés sikeresen elküldve!';
-            _nameController.clear();
-            _emailController.clear();
-            _passwordController.clear();
-            _confirmPasswordController.clear();
-            _accessCodeController.clear();
-          });
+        final joined = await _showAccessCodeDialog();
+        if (!joined) {
           return;
         }
-
-        if (!mounted) return;
+        return;
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -189,6 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       email: email,
                     );
                     if (!mounted) return;
+                    if (!dialogContext.mounted) return;
                     Navigator.of(dialogContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -225,7 +277,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final isRegisterMode = _selectedMode == 'Regisztráció';
 
     return Scaffold(
-      appBar: AppBar(title: Text(_selectedMode)),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -234,26 +285,50 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'Bejelentkezés',
-                      label: Text('Bejelentkezés'),
-                    ),
-                    ButtonSegment(
-                      value: 'Regisztráció',
-                      label: Text('Regisztráció'),
-                    ),
-                  ],
-                  selected: {_selectedMode},
-                  onSelectionChanged: (Set<String> newSelection) {
-                    setState(() {
-                      _selectedMode = newSelection.first;
-                      _errorMessage = null;
-                      _successMessage = null;
-                    });
-                  },
+                SvgPicture.asset(
+                  'assets/logo.svg',
+                  width: 200,
+                  height: 200,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.primary,
+                    BlendMode.srcIn,
+                  ),
                 ),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      shape: WidgetStatePropertyAll(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      padding: WidgetStatePropertyAll(
+                        EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      ),
+                    ),
+                    segments: const [
+                      ButtonSegment(
+                        value: 'Bejelentkezés',
+                        label: Text('Bejelentkezés'),
+                      ),
+                      ButtonSegment(
+                        value: 'Regisztráció',
+                        label: Text('Regisztráció'),
+                      ),
+                    ],
+                    selected: {_selectedMode},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      setState(() {
+                        _selectedMode = newSelection.first;
+                        _errorMessage = null;
+                        _successMessage = null;
+                      });
+                    },
+                  ),
+                ),
+
                 const SizedBox(height: 24),
                 if (isRegisterMode) ...[
                   TextFormField(
@@ -276,6 +351,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                 ],
                 TextFormField(
+                  autocorrect: false,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
@@ -341,25 +417,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       }
                       if (value != _passwordController.text) {
                         return 'A jelszavak nem egyeznek meg';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _accessCodeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Hozzáférési kód',
-                      hintText: 'Add meg a hozzáférési kódot',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.password),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Kérjük, add meg a hozzáférési kódot';
-                      }
-                      if (value.length < 4) {
-                        return 'A hozzáférési kód legalább 4 karakter hosszú legyen';
                       }
                       return null;
                     },
@@ -443,6 +500,127 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AccessCodeDialog extends StatefulWidget {
+  final Future<String?> Function(String accessCode) onSubmit;
+
+  const _AccessCodeDialog({required this.onSubmit});
+
+  @override
+  State<_AccessCodeDialog> createState() => _AccessCodeDialogState();
+}
+
+class _AccessCodeDialogState extends State<_AccessCodeDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller;
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_formKey.currentState?.validate() == true) {
+      setState(() {
+        _isSubmitting = true;
+        _errorMessage = null;
+      });
+      try {
+        final error = await widget.onSubmit(_controller.text.trim());
+        if (!mounted) return;
+        if (error == null) {
+          Navigator.pop(context, true);
+          return;
+        }
+        setState(() {
+          _errorMessage = error;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = 'Csatlakozás közben hiba történt. Próbáld újra. $e';
+        });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Hozzáférési kód megadása'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "A munkatérhez való csatlakozáshoz add meg a 6 karakter hosszúságú csapatazonosító kódot",
+          ),
+          const SizedBox(height: 16),
+          Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: _controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Hozzáférési kód',
+                hintText: 'pl.: ABC123',
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Kérjük, add meg a hozzáférési kódot';
+                }
+                if (value.trim().length != 6) {
+                  return 'A kód 6 karakter hosszú kell legyen';
+                }
+                return null;
+              },
+              onFieldSubmitted: (_) => _submit(),
+            ),
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.pop(context, false),
+          child: const Text('Mégse'),
+        ),
+        FilledButton(
+          onPressed: _isSubmitting ? null : _submit,
+          child:
+              _isSubmitting
+                  ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                  : const Text('Folytatás'),
+        ),
+      ],
     );
   }
 }

@@ -139,11 +139,6 @@ class MainApp extends StatelessWidget {
                   final teamId = userData['teamId'];
                   final roleNumber = userData['role'];
 
-                  // Ha nincs érvényes teamId, navigáljunk a CreateNewWorkspaceScreen-re
-                  if ((teamId == null || teamId == '') && roleNumber == 1) {
-                    return const CreateNewWorkspaceScreen();
-                  }
-
                   if (roleNumber == null || roleNumber == '') {
                     return Scaffold(
                       body: Center(

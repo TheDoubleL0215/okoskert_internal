@@ -952,6 +952,14 @@ class AddCalendarPostScreenState extends State<AddCalendarPostScreen> {
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<int>(
+            style: ButtonStyle(
+              shape: WidgetStatePropertyAll(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              padding: WidgetStatePropertyAll(
+                EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              ),
+            ),
             segments: List<ButtonSegment<int>>.generate(3, (int index) {
               switch (index) {
                 case 0:

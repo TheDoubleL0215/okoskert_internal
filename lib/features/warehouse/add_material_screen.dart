@@ -47,6 +47,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     'tonna',
     "méter",
     "centiméter",
+    "liter",
+    "deciliter",
   ];
 
   String _formatDate(DateTime date) {

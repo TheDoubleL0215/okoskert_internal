@@ -58,7 +58,7 @@ class _ProjectStatusChipState extends State<ProjectStatusChip> {
           (context) => StatefulBuilder(
             builder:
                 (context, setModalState) => Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -89,26 +89,20 @@ class _ProjectStatusChipState extends State<ProjectStatusChip> {
                         },
                         child: Column(
                           children: const [
-                            ListTile(
+                            RadioListTile<ProjectStatus>(
+                              value: ProjectStatus.ongoing,
                               contentPadding: EdgeInsets.zero,
                               title: Text('Folyamatban'),
-                              leading: Radio<ProjectStatus>(
-                                value: ProjectStatus.ongoing,
-                              ),
                             ),
-                            ListTile(
+                            RadioListTile<ProjectStatus>(
+                              value: ProjectStatus.done,
                               contentPadding: EdgeInsets.zero,
                               title: Text('Kész'),
-                              leading: Radio<ProjectStatus>(
-                                value: ProjectStatus.done,
-                              ),
                             ),
-                            ListTile(
+                            RadioListTile<ProjectStatus>(
+                              value: ProjectStatus.maintenance,
                               contentPadding: EdgeInsets.zero,
                               title: Text('Karbantartás'),
-                              leading: Radio<ProjectStatus>(
-                                value: ProjectStatus.maintenance,
-                              ),
                             ),
                             const SizedBox(height: 16),
                           ],

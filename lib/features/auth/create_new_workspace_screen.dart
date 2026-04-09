@@ -1,10 +1,27 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class CreateNewWorkspaceScreen extends StatefulWidget {
-  const CreateNewWorkspaceScreen({super.key});
+  final String? signupName;
+  final String? signupEmail;
+  final String? signupPassword;
+
+  const CreateNewWorkspaceScreen({
+    super.key,
+    this.signupName,
+    this.signupEmail,
+    this.signupPassword,
+  });
+  const CreateNewWorkspaceScreen.forSignup({
+    super.key,
+    required this.signupName,
+    required this.signupEmail,
+    required this.signupPassword,
+  });
 
   @override
   State<CreateNewWorkspaceScreen> createState() =>
@@ -12,6 +29,9 @@ class CreateNewWorkspaceScreen extends StatefulWidget {
 }
 
 class _CreateNewWorkspaceScreenState extends State<CreateNewWorkspaceScreen> {
+  static const String _createWorkspaceUrl =
+      'https://us-central1-okoskert-dev.cloudfunctions.net/createWorkspace';
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -49,7 +69,20 @@ class _CreateNewWorkspaceScreenState extends State<CreateNewWorkspaceScreen> {
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      User? user = FirebaseAuth.instance.currentUser;
+
+      final signupEmail = widget.signupEmail?.trim();
+      final signupPassword = widget.signupPassword;
+      final signupName = widget.signupName?.trim() ?? '';
+
+      if (user == null && signupEmail != null && signupEmail.isNotEmpty) {
+        user =
+            (await FirebaseAuth.instance.createUserWithEmailAndPassword(
+              email: signupEmail,
+              password: signupPassword ?? '',
+            )).user;
+      }
+
       if (user == null) {
         setState(() {
           _errorMessage = 'Nincs bejelentkezett felhasználó';
@@ -60,24 +93,66 @@ class _CreateNewWorkspaceScreenState extends State<CreateNewWorkspaceScreen> {
       // Generáljuk a teamId-t
       final teamId = _generateTeamId();
 
-      // Mentjük a workspace-t
-      await FirebaseFirestore.instance.collection('workspaces').add({
+      final emailForRequest = user.email ?? signupEmail ?? '';
+      if (emailForRequest.isEmpty) {
+        setState(() {
+          _errorMessage = 'Nem található email cím a workspace létrehozásához';
+        });
+        return;
+      }
+
+      // Workspace létrehozása Cloud Functionnel
+      final workspaceBody = {
         'name': _nameController.text.trim(),
         'address': _addressController.text.trim(),
         'teamId': teamId,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+        'createdAt': DateTime.now().toIso8601String(),
+      };
 
-      // Frissítjük a felhasználó dokumentumát a teamId-vel (uid alapján)
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'teamId': teamId},
+      final response = await http.post(
+        Uri.parse(
+          _createWorkspaceUrl,
+        ).replace(queryParameters: {'email': emailForRequest}),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(workspaceBody),
       );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Workspace létrehozás sikertelen: ${response.body}');
+      }
+
+      final userDocRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid);
+      final userDoc = await userDocRef.get();
+
+      if (userDoc.exists) {
+        await userDocRef.update({
+          'teamId': teamId,
+          'role': 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await userDocRef.set({
+          'name':
+              signupName.isNotEmpty
+                  ? signupName
+                  : (user.displayName?.trim().isNotEmpty == true
+                      ? user.displayName!.trim()
+                      : user.email ?? ''),
+          'email': user.email ?? signupEmail ?? '',
+          'role': 1,
+          'teamId': teamId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
 
       if (!mounted) return;
 
       setState(() {
         _successMessage = 'Munkahely sikeresen létrehozva!';
       });
+      Navigator.pop(context);
 
       // Sikeres mentés után a main.dart StreamBuilder automatikusan átvált a HomePage-re
     } catch (error) {

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:okoskert_internal/data/services/employee_name_service.dart';
 
 class WorklogSummary {
   final String employeeName;
@@ -12,72 +13,96 @@ class WorklogSummary {
   });
 }
 
+class _WorklogAgg {
+  int totalMinutes = 0;
+  int entryCount = 0;
+}
+
 class WorklogService {
-  /// Lekérdezi a projekt worklog adatait és összesíti alkalmazott neve szerint
-  ///
-  /// [projectId] - A projekt dokumentum ID-ja
-  /// Visszatér a munkaórák összesítésével alkalmazott neve szerint csoportosítva
-  static Future<List<WorklogSummary>> getWorklogSummaryByEmployee(
-    String projectId,
-  ) async {
+  /// Összesíti a [workspaceRef]/worklogs bejegyzéseit a megadott projektre
+  /// (`assignedProjectId`), dolgozó neve szerint. A `type == machines` sorok
+  /// nem kerülnek bele.
+  static Future<List<WorklogSummary>> getWorklogSummaryByEmployee({
+    required DocumentReference<Map<String, dynamic>> workspaceRef,
+    required String projectId,
+  }) async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(projectId)
-          .collection('worklog')
-          .get();
+      final querySnapshot =
+          await workspaceRef
+              .collection('worklogs')
+              .where('assignedProjectId', isEqualTo: projectId)
+              .get();
 
-      // Csoportosítás alkalmazott neve szerint
-      final groupedByEmployee = <String, List<Map<String, dynamic>>>{};
+      final docs =
+          querySnapshot.docs
+              .where((d) => (d.data()['type'] as String?) != 'machines')
+              .toList();
+      if (docs.isEmpty) return <WorklogSummary>[];
 
-      for (final doc in querySnapshot.docs) {
+      final employeeIds = <String>{};
+
+      for (final doc in docs) {
         final data = doc.data();
-        final employeeName = data['employeeName'] as String? ?? 'Ismeretlen';
-        groupedByEmployee.putIfAbsent(employeeName, () => []).add(data);
+        final eid = '${data['employeeId'] ?? ''}'.trim();
+        if (eid.isNotEmpty) employeeIds.add(eid);
       }
 
-      // Összesítés minden alkalmazottra
-      final summaries = <WorklogSummary>[];
+      final employeeNames = await EmployeeNameService.getEmployeeNames(
+        employeeIds.toList(),
+      );
 
-      for (final entry in groupedByEmployee.entries) {
-        final employeeName = entry.key;
-        final entries = entry.value;
-
-        Duration totalDuration = Duration.zero;
-        int entryCount = 0;
-
-        for (final entryData in entries) {
-          final startTime = entryData['startTime'] as Timestamp?;
-          final endTime = entryData['endTime'] as Timestamp?;
-          final breakMinutes = entryData['breakMinutes'] as int? ?? 0;
-
-          if (startTime != null && endTime != null) {
-            final start = startTime.toDate();
-            final end = endTime.toDate();
-            final duration = end.difference(start);
-            // Levonjuk a szünetet
-            final workDuration = duration - Duration(minutes: breakMinutes);
-            totalDuration += workDuration;
-            entryCount++;
-          }
+      String displayName(Map<String, dynamic> data) {
+        final uid = '${data['employeeId'] ?? ''}'.trim();
+        if (uid.isEmpty) {
+          final en = (data['employeeName'] as String?)?.trim();
+          if (en != null && en.isNotEmpty) return en;
+          return 'Ismeretlen';
         }
-
-        summaries.add(
-          WorklogSummary(
-            employeeName: employeeName,
-            totalDuration: totalDuration,
-            entryCount: entryCount,
-          ),
-        );
+        return employeeNames[uid] ?? uid;
       }
 
-      // Rendezés alkalmazott neve szerint
-      summaries.sort((a, b) => a.employeeName.compareTo(b.employeeName));
+      int minutesWorked(Map<String, dynamic> data) {
+        final wm = data['workedMinutes'];
+        if (wm is num && wm.round() > 0) {
+          return wm.round();
+        }
+        final start = data['startTime'] as Timestamp?;
+        final end = data['endTime'] as Timestamp?;
+        final breakM = (data['breakMinutes'] as num?)?.toInt() ?? 0;
+        if (start != null && end != null) {
+          var m = end.toDate().difference(start.toDate()).inMinutes - breakM;
+          if (m < 0) m = 0;
+          return m;
+        }
+        return 0;
+      }
 
+      final totals = <String, _WorklogAgg>{};
+      for (final doc in docs) {
+        final data = doc.data();
+        final m = minutesWorked(data);
+        if (m <= 0) continue;
+        final name = displayName(data);
+        final agg = totals.putIfAbsent(name, _WorklogAgg.new);
+        agg.totalMinutes += m;
+        agg.entryCount++;
+      }
+
+      final summaries =
+          totals.entries
+              .map(
+                (e) => WorklogSummary(
+                  employeeName: e.key,
+                  totalDuration: Duration(minutes: e.value.totalMinutes),
+                  entryCount: e.value.entryCount,
+                ),
+              )
+              .toList();
+
+      summaries.sort((a, b) => a.employeeName.compareTo(b.employeeName));
       return summaries;
     } catch (e) {
       rethrow;
     }
   }
 }
-

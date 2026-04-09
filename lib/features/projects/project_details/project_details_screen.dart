@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:okoskert_internal/app/session_provider.dart';
+import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/data/services/get_user_team_id.dart';
 import 'package:okoskert_internal/data/services/get_worklog_summary.dart';
 import 'package:okoskert_internal/features/projects/create_project/create_project_screen.dart';
@@ -526,7 +527,6 @@ class MaterialsSection extends StatelessWidget {
   }
 }
 
-// --- Worklog section stays untouched ---
 class WorklogSummarySection extends StatelessWidget {
   final String projectId;
 
@@ -534,21 +534,56 @@ class WorklogSummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final workspace = context.watch<WorkspaceProvider>();
+    if (workspace.isLoading && workspace.workspaceRef == null) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final ref = workspace.workspaceRef;
+    if (ref == null) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          workspace.error != null && workspace.error!.isNotEmpty
+              ? 'Munkatér: ${workspace.error}'
+              : 'Nem található munkatér a munkanapló összesítéshez.',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      );
+    }
+
     return FutureBuilder<List<WorklogSummary>>(
-      future: WorklogService.getWorklogSummaryByEmployee(projectId),
+      future: WorklogService.getWorklogSummaryByEmployee(
+        workspaceRef: ref,
+        projectId: projectId,
+      ),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(),
+            child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        final summaries = snapshot.data!;
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Munkanapló összesítés hiba: ${snapshot.error}',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          );
+        }
+
+        final summaries = snapshot.data ?? [];
         if (summaries.isEmpty) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: Text('Még nincsenek munkanapló bejegyzések'),
+            child: Text(
+              'Még nincsenek munkanapló bejegyzések ehhez a projekthez',
+            ),
           );
         }
 

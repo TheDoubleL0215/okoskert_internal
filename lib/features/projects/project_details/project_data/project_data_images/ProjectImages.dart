@@ -8,11 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:okoskert_internal/app/session_provider.dart';
 import 'package:okoskert_internal/data/services/employee_name_service.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
-import 'package:provider/provider.dart';
 
 typedef _DiaryViewData =
     ({
@@ -36,8 +34,8 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
   final List<XFile> _attachments = [];
   bool _isSending = false;
 
-  /// Görgethető tartalom alsó paddingje, hogy ne takarja a lebegő szerkesztő.
-  static const double _kComposerScrollPadding = 280;
+  /// Görgethető tartalom alsó paddingje, hogy a FAB ne takarja az utolsó elemet.
+  static const double _kFabScrollPadding = 96;
 
   /// A bejegyzés naptári napja. Ha nem a mai nap: [createdAt] csak dátum (éjfél), idő nélkül.
   late DateTime _postDate;
@@ -104,13 +102,14 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
     }
   }
 
-  Future<void> _pickImages() async {
+  Future<void> _pickImages([VoidCallback? onChanged]) async {
     try {
       final List<XFile> picked = await _imagePicker.pickMultiImage(
         imageQuality: 85,
       );
       if (picked.isEmpty || !mounted) return;
       setState(() => _attachments.addAll(picked));
+      onChanged?.call();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -119,8 +118,9 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
     }
   }
 
-  void _removeAttachment(int index) {
+  void _removeAttachment(int index, [VoidCallback? onChanged]) {
     setState(() => _attachments.removeAt(index));
+    onChanged?.call();
   }
 
   String _contentTypeFor(XFile x) {
@@ -142,7 +142,7 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
     return '.jpg';
   }
 
-  Future<void> _send() async {
+  Future<bool> _send() async {
     final text = _textController.text.trim();
     if (text.isEmpty && _attachments.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -150,7 +150,7 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
           content: Text('Írj szöveget vagy csatolj legalább egy képet.'),
         ),
       );
-      return;
+      return false;
     }
 
     setState(() => _isSending = true);
@@ -193,7 +193,7 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
           .doc(widget.projectId)
           .update({'updatedAt': FieldValue.serverTimestamp()});
 
-      if (!mounted) return;
+      if (!mounted) return false;
       _textController.clear();
       final today = DateTime.now();
       setState(() {
@@ -204,27 +204,185 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Bejegyzés elmentve')));
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Mentési hiba: $e')));
+      return false;
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
   }
 
+  Future<void> _openComposerSheet() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await showModalBottomSheet<void>(
+      isDismissible: false,
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder:
+          (sheetContext) => StatefulBuilder(
+            builder: (sheetContext, sheetSetState) {
+              final colorScheme = Theme.of(sheetContext).colorScheme;
+              final bottomInset = MediaQuery.viewInsetsOf(sheetContext).bottom;
+              return Padding(
+                padding: EdgeInsets.only(bottom: bottomInset),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16.0,
+                            horizontal: 8.0,
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                'Új bejegyzés',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                onPressed:
+                                    () => Navigator.of(sheetContext).pop(),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_attachments.isNotEmpty) ...[
+                          SizedBox(
+                            height: 88,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _attachments.length,
+                              separatorBuilder:
+                                  (_, __) => const SizedBox(width: 8),
+                              itemBuilder: (context, index) {
+                                final file = _attachments[index];
+                                return _AttachmentThumb(
+                                  file: file,
+                                  onRemove:
+                                      () => _removeAttachment(
+                                        index,
+                                        () => sheetSetState(() {}),
+                                      ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+
+                        TextField(
+                          controller: _textController,
+                          focusNode: _textFocusNode,
+                          minLines: 1,
+                          maxLines: 6,
+                          enabled: !_isSending,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            hintText: 'Poszt szövege…',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                padding: EdgeInsets.all(16),
+                              ),
+                              onPressed:
+                                  _isSending
+                                      ? null
+                                      : () async {
+                                        await _pickPostDate();
+                                        if (mounted) sheetSetState(() {});
+                                      },
+                              icon: const Icon(
+                                LucideIcons.calendarDays,
+                                size: 18,
+                              ),
+                              label: Text(_postDateOnlyFmt.format(_postDate)),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                padding: EdgeInsets.all(16),
+                              ),
+                              onPressed:
+                                  _isSending
+                                      ? null
+                                      : () => _pickImages(
+                                        () => sheetSetState(() {}),
+                                      ),
+                              icon: const Icon(LucideIcons.imagePlus),
+                              label: const Text('Kép'),
+                            ),
+                            const Spacer(),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap:
+                                  _isSending
+                                      ? null
+                                      : () async {
+                                        final ok = await _send();
+                                        if (ok && sheetContext.mounted) {
+                                          Navigator.of(sheetContext).pop();
+                                        }
+                                        if (mounted) sheetSetState(() {});
+                                      },
+                              borderRadius: BorderRadius.circular(28),
+                              child: Container(
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: colorScheme.primaryContainer,
+                                ),
+                                child: Center(
+                                  child:
+                                      _isSending
+                                          ? SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: colorScheme.primary,
+                                            ),
+                                          )
+                                          : const Icon(
+                                            Icons.send_rounded,
+                                            size: 24,
+                                          ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionProvider>();
-    final role = session.role;
     final colorScheme = Theme.of(context).colorScheme;
 
     final scrollBottomPad =
-        16 +
-        _kComposerScrollPadding +
-        MediaQuery.viewPaddingOf(context).bottom +
-        MediaQuery.viewInsetsOf(context).bottom;
+        16 + _kFabScrollPadding + MediaQuery.viewPaddingOf(context).bottom + 16;
 
     return Stack(
       fit: StackFit.expand,
@@ -306,125 +464,12 @@ class _ProjectImagesScreenState extends State<ProjectImagesScreen> {
           ),
         ),
         Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Material(
-              borderRadius: const BorderRadius.all(Radius.circular(24)),
-              elevation: 8,
-              shadowColor: Colors.black26,
-              color: colorScheme.surfaceContainerHighest,
-              child: SafeArea(
-                top: false,
-                minimum: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_attachments.isNotEmpty) ...[
-                        SizedBox(
-                          height: 88,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _attachments.length,
-                            separatorBuilder:
-                                (_, __) => const SizedBox(width: 8),
-                            itemBuilder: (context, index) {
-                              final file = _attachments[index];
-                              return _AttachmentThumb(
-                                file: file,
-                                onRemove: () => _removeAttachment(index),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          'Bejegyzés dátuma',
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                        subtitle: Text(
-                          _postDateOnlyFmt.format(_postDate),
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        leading: const Icon(LucideIcons.calendarDays, size: 22),
-                        onTap: _isSending ? null : _pickPostDate,
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _textController,
-                        focusNode: _textFocusNode,
-                        minLines: 1,
-                        maxLines: 6,
-                        enabled: !_isSending,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: 'Poszt szövege…',
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          errorBorder: InputBorder.none,
-                          focusedErrorBorder: InputBorder.none,
-                          disabledBorder: InputBorder.none,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            style: IconButton.styleFrom(
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.all(8),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            onPressed: _isSending ? null : _pickImages,
-                            icon: const Icon(LucideIcons.imagePlus, size: 28),
-                          ),
-                          const Spacer(),
-                          InkWell(
-                            onTap: _isSending ? null : _send,
-                            borderRadius: BorderRadius.circular(28),
-                            child: Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: colorScheme.primaryContainer,
-                              ),
-                              child: Center(
-                                child:
-                                    _isSending
-                                        ? SizedBox(
-                                          width: 22,
-                                          height: 22,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: colorScheme.primary,
-                                          ),
-                                        )
-                                        : const Icon(
-                                          Icons.send_rounded,
-                                          size: 24,
-                                        ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          right: 16,
+          bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
+          child: FloatingActionButton.extended(
+            onPressed: _isSending ? null : _openComposerSheet,
+            icon: const Icon(LucideIcons.notebookPen),
+            label: const Text('Új bejegyzés'),
           ),
         ),
       ],
@@ -475,9 +520,7 @@ class _DiaryPostCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onLongPress:
-              isOwnPost
-                  ? () => _confirmAndDeleteOwnDiaryPost(context, doc)
-                  : null,
+              isOwnPost ? () => _showOwnDiaryPostActions(context, doc) : null,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -595,6 +638,159 @@ class _DiaryPostCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+Future<void> _showOwnDiaryPostActions(
+  BuildContext context,
+  QueryDocumentSnapshot<Map<String, dynamic>> doc,
+) async {
+  final action = await showModalBottomSheet<_DiaryPostAction>(
+    context: context,
+    builder:
+        (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Bejegyzés szövegének szerkesztése'),
+                onTap: () => Navigator.of(ctx).pop(_DiaryPostAction.edit),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(ctx).colorScheme.error,
+                ),
+                title: Text(
+                  'Törlés',
+                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                ),
+                onTap: () => Navigator.of(ctx).pop(_DiaryPostAction.delete),
+              ),
+            ],
+          ),
+        ),
+  );
+  if (!context.mounted || action == null) return;
+  switch (action) {
+    case _DiaryPostAction.edit:
+      await _editOwnDiaryPostText(context, doc);
+      break;
+    case _DiaryPostAction.delete:
+      await _confirmAndDeleteOwnDiaryPost(context, doc);
+      break;
+  }
+}
+
+Future<void> _editOwnDiaryPostText(
+  BuildContext context,
+  QueryDocumentSnapshot<Map<String, dynamic>> doc,
+) async {
+  final data = doc.data();
+  final initialText = (data['text'] as String? ?? '').trim();
+  final hasImages = ((data['imageUrls'] as List<dynamic>?) ?? []).isNotEmpty;
+
+  final editedText = await showDialog<String>(
+    context: context,
+    builder:
+        (ctx) => _EditDiaryPostDialog(
+          initialText: initialText,
+          hasImages: hasImages,
+        ),
+  );
+  if (!context.mounted || editedText == null) return;
+  if (editedText == initialText) return;
+
+  try {
+    await doc.reference.update({
+      'text': editedText,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    final projectDoc = doc.reference.parent.parent;
+    if (projectDoc != null) {
+      await projectDoc.update({'updatedAt': FieldValue.serverTimestamp()});
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Bejegyzés frissítve')));
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Szerkesztési hiba: $e')));
+  }
+}
+
+enum _DiaryPostAction { edit, delete }
+
+class _EditDiaryPostDialog extends StatefulWidget {
+  const _EditDiaryPostDialog({
+    required this.initialText,
+    required this.hasImages,
+  });
+
+  final String initialText;
+  final bool hasImages;
+
+  @override
+  State<_EditDiaryPostDialog> createState() => _EditDiaryPostDialogState();
+}
+
+class _EditDiaryPostDialogState extends State<_EditDiaryPostDialog> {
+  late final TextEditingController _controller;
+  String? _validationError;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final text = _controller.text.trim();
+    if (text.isEmpty && !widget.hasImages) {
+      setState(() {
+        _validationError = 'A bejegyzés nem lehet üres képek nélkül.';
+      });
+      return;
+    }
+    Navigator.pop(context, text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Bejegyzés szövegének szerkesztése'),
+      content: SizedBox(
+        width: 360,
+        child: TextField(
+          controller: _controller,
+          autofocus: true,
+          minLines: 2,
+          maxLines: 8,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: 'Poszt szövege…',
+            errorText: _validationError,
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Mégse'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Mentés')),
+      ],
     );
   }
 }

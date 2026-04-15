@@ -1,7 +1,22 @@
+import com.android.build.gradle.LibraryExtension
+
+plugins {
+    id("com.android.library") apply false
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+// Olyan pub pluginok (pl. maps_launcher), amelyek régi compileSdk-t hardkódolnak, AAR metadata hibát okoznak.
+subprojects {
+    afterEvaluate {
+        project.extensions.findByType(LibraryExtension::class.java)?.apply {
+            compileSdk = 36
+        }
     }
 }
 

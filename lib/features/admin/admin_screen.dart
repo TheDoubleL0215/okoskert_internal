@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:okoskert_internal/app/session_provider.dart';
-import 'package:okoskert_internal/data/services/get_user_team_id.dart';
+import 'package:okoskert_internal/features/admin/workspace_settings/workspace_settings_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:okoskert_internal/app/settings_screen.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
@@ -80,7 +80,10 @@ class AdminPage extends StatelessWidget {
                 children: [
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -97,6 +100,19 @@ class AdminPage extends StatelessWidget {
                                   style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const WorkspaceSettingsScreen(),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Kezelés'),
                               ),
                             ],
                           ),

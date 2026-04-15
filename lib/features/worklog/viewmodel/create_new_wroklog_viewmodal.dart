@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/core/utils/services/employee_service.dart';
+import 'package:okoskert_internal/features/worklog/models/wage_type_option.dart';
 import 'package:okoskert_internal/features/worklog/models/worklog_item_model.dart';
 import 'package:okoskert_internal/features/worklog/services/worklog_save_service.dart';
 
@@ -19,6 +20,8 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
   DateTime _startTime = DateTime.now();
   DateTime _endTime = DateTime.now().add(const Duration(hours: 1));
   String _description = '';
+  List<WageTypeOption> _wageTypes = [];
+  WageTypeOption? _selectedWageType;
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -30,6 +33,8 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
   DateTime get startTime => _startTime;
   DateTime get endTime => _endTime;
   String get description => _description;
+  List<WageTypeOption> get wageTypes => _wageTypes;
+  WageTypeOption? get selectedWageType => _selectedWageType;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   String? get error => _error;
@@ -40,7 +45,35 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final workspaceRef = _workspaceProvider.workspaceRef;
       _employees = await EmployeeService.getEmployees();
+
+      if (workspaceRef != null) {
+        final wageSnap =
+            await workspaceRef
+                .collection('wageTypes')
+                .orderBy('createdAt', descending: false)
+                .get();
+        _wageTypes =
+            wageSnap.docs.map((doc) {
+              final data = doc.data();
+              final name = (data['name'] ?? '').toString().trim();
+              final dv = data['defaultValue'];
+              final defaultValue =
+                  dv is int
+                      ? dv
+                      : dv is num
+                      ? dv.toInt()
+                      : int.tryParse(dv?.toString() ?? '') ?? 0;
+              return WageTypeOption(
+                id: doc.id,
+                name: name.isEmpty ? 'Névtelen' : name,
+                defaultValue: defaultValue,
+              );
+            }).toList();
+      } else {
+        _wageTypes = [];
+      }
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -97,6 +130,11 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSelectedWageType(WageTypeOption? value) {
+    _selectedWageType = value;
+    notifyListeners();
+  }
+
   /// Validáció: végidő legyen későbbi a kezdőidőnél, legyen legalább egy dolgozó.
   String? validate() {
     if (_selectedEmployeeIds.isEmpty) {
@@ -142,6 +180,7 @@ class CreateNewWorklogViewModel extends ChangeNotifier {
           workedMinutes: workedMinutes,
           startTime: _startTime,
           endTime: _endTime,
+          wageTypeId: _selectedWageType?.id,
         );
 
         final result = await WorklogSaveService.createWorklog(

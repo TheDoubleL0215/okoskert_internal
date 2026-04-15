@@ -46,6 +46,12 @@ Stream<List<WorklogItemModel>> getHydratedWorklogs(
           employeeIds,
         );
 
+        final wageTypeSnap = await workspaceRef.collection('wageTypes').get();
+        final wageTypeNamesById = <String, String>{
+          for (final doc in wageTypeSnap.docs)
+            doc.id: (doc.data()['name'] as String?) ?? '',
+        };
+
         // 2/b. Machine names from `machines` collection (for type == 'machines')
         final machineIds =
             worklogDocs
@@ -95,6 +101,9 @@ Stream<List<WorklogItemModel>> getHydratedWorklogs(
                       (data['machineName'] as String?) ??
                       machineId)
                   : (employeeNames[uId] ?? uId);
+          final wageTypeId = data['wageTypeId'] as String?;
+          final wageTypeName =
+              wageTypeId == null ? null : wageTypeNamesById[wageTypeId];
 
           final date = data['date'] as Timestamp?;
           final startTime = data['startTime'] as Timestamp?;
@@ -124,6 +133,8 @@ Stream<List<WorklogItemModel>> getHydratedWorklogs(
             endTime: endTime?.toDate() ?? DateTime.now(),
             breakMinutes: breakMinutes,
             type: data['type'] as String?,
+            wageTypeId: wageTypeId,
+            wageTypeName: wageTypeName,
           );
         }).toList();
       });

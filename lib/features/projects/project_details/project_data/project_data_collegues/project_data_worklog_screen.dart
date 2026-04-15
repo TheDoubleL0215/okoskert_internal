@@ -335,6 +335,8 @@ class _ProjectDataWorklogScreenState extends State<ProjectDataWorklogScreen> {
                           endTime: endTime?.toDate() ?? DateTime.now(),
                           breakMinutes: breakMinutes,
                           description: description,
+                          type: data['type'] as String?,
+                          wageTypeId: data['wageTypeId'] as String?,
                         );
 
                         return WorklogEntryTile(

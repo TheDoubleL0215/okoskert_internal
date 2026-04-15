@@ -70,11 +70,10 @@ class WorklogSaveService {
     }
   }
 
-  /// Meglévő worklog frissítése: validál, ütközés check (saját doc kizárva), trim, update.
+  /// Meglévő worklog frissítése: validál, majd közvetlen update (nincs ütközésellenőrzés).
   static Future<WorklogSaveResult> updateWorklog({
     required DocumentReference<Map<String, dynamic>> workspaceRef,
     required WorklogItemModel item,
-    required BuildContext context,
   }) async {
     if (item.id.isEmpty) {
       return const WorklogSaveFailure('A bejegyzés azonosítója hiányzik.');
@@ -85,36 +84,12 @@ class WorklogSaveService {
       return WorklogSaveFailure(validationError);
     }
 
-    final dateOnly = DateTime(item.date.year, item.date.month, item.date.day);
-    final existingLogs = await _fetchWorklogsForDay(
-      workspaceRef,
-      item.employeeId,
-      dateOnly,
-    );
-
-    WorklogItemModel itemToSave = item;
-    WorklogItemModel? conflict = findOverlap(
-      itemToSave,
-      existingLogs,
-      excludeDocumentId: item.id,
-    );
-
-    if (conflict != null) {
-      final shouldTrim = await showConflictDialog(context, conflict);
-      if (shouldTrim != true) {
-        return const WorklogSaveCancelled();
-      }
-      itemToSave = applyTrim(itemToSave, conflict);
-      if (itemToSave.workedMinutes <= 0) {
-        return const WorklogSaveFailure(
-          'A módosítás teljesen fedi a létező bejegyzést, nem vágható.',
-        );
-      }
-    }
-
     try {
       final updateData =
-          itemToSave.toMap()..['updatedAt'] = FieldValue.serverTimestamp();
+          item.toMap()..['updatedAt'] = FieldValue.serverTimestamp();
+      if (item.wageTypeId == null) {
+        updateData['wageTypeId'] = FieldValue.delete();
+      }
       await workspaceRef.collection('worklogs').doc(item.id).update(updateData);
       await workspaceRef.update({'updatedAt': FieldValue.serverTimestamp()});
       return const WorklogSaveSuccess();
@@ -187,6 +162,7 @@ class WorklogSaveService {
       startTime: newStart,
       endTime: newItem.endTime,
       breakMinutes: newItem.breakMinutes,
+      wageTypeId: newItem.wageTypeId,
     );
   }
 

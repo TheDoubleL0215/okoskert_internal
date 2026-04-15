@@ -13,6 +13,8 @@ class WorklogItemModel {
   final DateTime startTime;
   final DateTime endTime;
   final int breakMinutes;
+  final String? wageTypeId;
+  final String? wageTypeName;
 
   WorklogItemModel({
     required this.id,
@@ -27,6 +29,8 @@ class WorklogItemModel {
     required this.startTime,
     required this.endTime,
     this.breakMinutes = 0,
+    this.wageTypeId,
+    this.wageTypeName,
   });
 
   factory WorklogItemModel.fromMap(
@@ -49,6 +53,8 @@ class WorklogItemModel {
       employeeName: map['employeeName'],
       projectName: map['projectName'],
       type: map['type'] as String?,
+      wageTypeId: map['wageTypeId'] as String?,
+      wageTypeName: map['wageTypeName'] as String?,
     );
   }
 
@@ -56,6 +62,8 @@ class WorklogItemModel {
     DateTime? startTime,
     DateTime? endTime,
     int? workedMinutes,
+    String? wageTypeId,
+    String? wageTypeName,
   }) {
     return WorklogItemModel(
       id: id,
@@ -70,6 +78,8 @@ class WorklogItemModel {
       employeeName: employeeName,
       projectName: projectName,
       type: type,
+      wageTypeId: wageTypeId ?? this.wageTypeId,
+      wageTypeName: wageTypeName ?? this.wageTypeName,
     );
   }
 
@@ -86,6 +96,7 @@ class WorklogItemModel {
       'endTime': endTime,
       'breakMinutes': breakMinutes,
       'type': type,
+      if (wageTypeId != null) 'wageTypeId': wageTypeId,
     };
   }
 }

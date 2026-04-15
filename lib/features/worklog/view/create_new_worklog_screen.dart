@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
 import 'package:okoskert_internal/features/calendar/ui/employee_selection_bottom_sheet.dart';
 import 'package:okoskert_internal/features/calendar/ui/selected_employees_section.dart';
+import 'package:okoskert_internal/features/worklog/ui/wage_type_selection_bottom_sheet.dart';
 import 'package:okoskert_internal/features/worklog/viewmodel/create_new_wroklog_viewmodal.dart';
 import 'package:provider/provider.dart';
 
@@ -124,7 +125,7 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
                 ),
                 trailing: const Icon(Icons.calendar_today),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
                     color: Theme.of(context).colorScheme.outline,
                   ),
@@ -153,7 +154,7 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
                   if (picked != null) viewModel.setDate(picked);
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               // Kezdőidő
               Row(
                 children: [
@@ -167,7 +168,7 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
                       ),
                       trailing: const Icon(Icons.access_time),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
                           color: Theme.of(context).colorScheme.outline,
                         ),
@@ -203,7 +204,7 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
                       ),
                       trailing: const Icon(Icons.access_time),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
                           color: Theme.of(context).colorScheme.outline,
                         ),
@@ -232,7 +233,7 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               // Leírás
               TextFormField(
                 initialValue: viewModel.description,
@@ -245,6 +246,52 @@ class _CreateNewWorklogFormState extends State<_CreateNewWorklogForm> {
                 maxLines: 2,
                 onChanged: viewModel.setDescription,
               ),
+              const SizedBox(height: 20),
+              if (viewModel.wageTypes.isEmpty)
+                ListTile(
+                  title: const Text('Bértípus'),
+                  subtitle: const Text(
+                    'Nincs beállított bértípus a munkatérben.',
+                  ),
+                  trailing: const Icon(Icons.payments_outlined),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                )
+              else
+                Builder(
+                  builder: (context) {
+                    final selected = viewModel.selectedWageType;
+                    return ListTile(
+                      title: const Text('Bértípus (opcionális)'),
+                      subtitle: Text(
+                        selected == null
+                            ? 'Érintsd meg a választáshoz'
+                            : '${selected.name} · alapértelmezett: ${selected.defaultValue} Ft',
+                      ),
+                      trailing: const Icon(Icons.payments_outlined),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                      onTap: () async {
+                        final picked = await showWageTypeSelectionBottomSheet(
+                          context: context,
+                          wageTypes: viewModel.wageTypes,
+                          initialSelection: selected,
+                        );
+                        if (picked != null) {
+                          viewModel.setSelectedWageType(picked);
+                        }
+                      },
+                    );
+                  },
+                ),
               const SizedBox(height: 32),
               FilledButton(
                 onPressed:

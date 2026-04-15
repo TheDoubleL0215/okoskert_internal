@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:okoskert_internal/app/workspace_provider.dart';
+import 'package:okoskert_internal/features/worklog/models/wage_type_option.dart';
 import 'package:okoskert_internal/features/worklog/models/worklog_item_model.dart';
 import 'package:okoskert_internal/features/worklog/services/worklog_save_service.dart';
+import 'package:okoskert_internal/features/worklog/ui/wage_type_selection_bottom_sheet.dart';
 import 'package:provider/provider.dart';
 
 // Bottom sheet a munkanapló bejegyzés szerkesztéséhez
@@ -31,6 +33,9 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
   late TextEditingController _dateController;
   late TextEditingController _descriptionController;
   bool _isSaving = false;
+  List<WageTypeOption> _wageTypes = [];
+  WageTypeOption? _selectedWageType;
+  bool _loadingWageTypes = false;
 
   @override
   void initState() {
@@ -53,6 +58,62 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
     _descriptionController = TextEditingController(
       text: widget.item.description,
     );
+
+    if (widget.item.type != 'machines') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadWageTypes();
+      });
+    }
+  }
+
+  Future<void> _loadWageTypes() async {
+    if (!mounted || widget.item.type == 'machines') return;
+
+    final workspaceRef = context.read<WorkspaceProvider>().workspaceRef;
+    if (workspaceRef == null) return;
+
+    setState(() => _loadingWageTypes = true);
+    try {
+      final snap =
+          await workspaceRef
+              .collection('wageTypes')
+              .orderBy('createdAt', descending: false)
+              .get();
+      final list =
+          snap.docs.map((doc) {
+            final data = doc.data();
+            final name = (data['name'] ?? '').toString().trim();
+            final dv = data['defaultValue'];
+            final defaultValue =
+                dv is int
+                    ? dv
+                    : dv is num
+                    ? dv.toInt()
+                    : int.tryParse(dv?.toString() ?? '') ?? 0;
+            return WageTypeOption(
+              id: doc.id,
+              name: name.isEmpty ? 'Névtelen' : name,
+              defaultValue: defaultValue,
+            );
+          }).toList();
+
+      WageTypeOption? selected;
+      for (final w in list) {
+        if (w.id == widget.item.wageTypeId) {
+          selected = w;
+          break;
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _wageTypes = list;
+        _selectedWageType = selected;
+        _loadingWageTypes = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingWageTypes = false);
+    }
   }
 
   @override
@@ -250,6 +311,11 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
       startTime: startOnDate,
       endTime: endOnDate,
       breakMinutes: breakMinutes,
+      type: widget.item.type,
+      wageTypeId:
+          widget.item.type == 'machines'
+              ? widget.item.wageTypeId
+              : _selectedWageType?.id,
     );
 
     setState(() {
@@ -269,7 +335,6 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
     final result = await WorklogSaveService.updateWorklog(
       workspaceRef: workspaceRef,
       item: itemToSave,
-      context: context,
     );
 
     setState(() {
@@ -450,6 +515,80 @@ class EditWorklogBottomSheetState extends State<EditWorklogBottomSheet> {
                   suffixIcon: Icon(Icons.sticky_note_2_outlined),
                 ),
               ),
+              if (widget.item.type != 'machines') ...[
+                const SizedBox(height: 16),
+                if (_loadingWageTypes)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (!widget.isEditable)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Bértípus'),
+                    subtitle: Text(
+                      _selectedWageType?.name ??
+                          widget.item.wageTypeName ??
+                          (widget.item.wageTypeId != null
+                              ? 'Ismeretlen bértípus'
+                              : 'Nincs megadva'),
+                    ),
+                    leading: const Icon(Icons.payments_outlined),
+                  )
+                else if (_wageTypes.isEmpty)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Bértípus'),
+                    subtitle: const Text(
+                      'Nincs beállított bértípus a munkatérben.',
+                    ),
+                    leading: const Icon(Icons.payments_outlined),
+                  )
+                else
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Bértípus (opcionális)'),
+                    subtitle: Text(
+                      _selectedWageType == null
+                          ? 'Érintsd meg a választáshoz'
+                          : '${_selectedWageType!.name} · alapértelmezett: ${_selectedWageType!.defaultValue} Ft',
+                    ),
+                    leading: const Icon(Icons.payments_outlined),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_selectedWageType != null)
+                          IconButton(
+                            tooltip: 'Bértípus törlése',
+                            onPressed:
+                                _isSaving
+                                    ? null
+                                    : () => setState(() {
+                                      _selectedWageType = null;
+                                    }),
+                            icon: const Icon(Icons.clear),
+                          ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                    onTap:
+                        _isSaving
+                            ? null
+                            : () async {
+                              final picked =
+                                  await showWageTypeSelectionBottomSheet(
+                                    context: context,
+                                    wageTypes: _wageTypes,
+                                    initialSelection: _selectedWageType,
+                                  );
+                              if (picked != null && mounted) {
+                                setState(() => _selectedWageType = picked);
+                              }
+                            },
+                  ),
+              ],
               const SizedBox(height: 24),
               // Mentés gomb
               if (widget.isEditable)

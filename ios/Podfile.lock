@@ -1,5 +1,5 @@
 PODS:
-  - cloud_firestore (6.1.0):
+  - cloud_firestore (6.2.0):
     - Firebase/Firestore (= 12.9.0)
     - firebase_core
     - Flutter
@@ -17,7 +17,7 @@ PODS:
   - Firebase/Storage (12.9.0):
     - Firebase/CoreOnly
     - FirebaseStorage (~> 12.9.0)
-  - firebase_auth (6.1.2):
+  - firebase_auth (6.3.0):
     - Firebase/Auth (= 12.9.0)
     - firebase_core
     - Flutter
@@ -28,7 +28,7 @@ PODS:
     - Firebase/Crashlytics (= 12.9.0)
     - firebase_core
     - Flutter
-  - firebase_storage (13.0.4):
+  - firebase_storage (13.2.0):
     - Firebase/Storage (= 12.9.0)
     - firebase_core
     - Flutter
@@ -249,12 +249,12 @@ CHECKOUT OPTIONS:
     :tag: 12.9.0
 
 SPEC CHECKSUMS:
-  cloud_firestore: 3409ac74cf7ea23c7e69cc81b5d9c7fb07cdf422
+  cloud_firestore: 698d4d849c58da2ef2b3b8b9db27d2cd56614e7e
   Firebase: 065f2bb395062046623036d8e6dc857bc2521d56
-  firebase_auth: 28ac3a8ffd05d81b52c21d639b1f006f283a071b
+  firebase_auth: 323c64eedef33fc3fdf438d16c29d2624b2ce4f4
   firebase_core: 8e6f58412ca227827c366b92e7cee047a2148c60
   firebase_crashlytics: c399f9682c474beb06a89c11dfab04db537f3cd2
-  firebase_storage: 3e703b24825e72f94a7a31e5fc0bbf75f8f65a16
+  firebase_storage: 8d16922c017c49812f7bbe64a86f756f99a44c74
   FirebaseAppCheckInterop: 4bade10286cc977e516f75d2d8312cbdfa534789
   FirebaseAuth: 3a39f6436c21ebfd7919b698228b4f89ff94c23b
   FirebaseAuthInterop: f8f6ff72dc24621906497fbe5cf3c42ee815e59c
@@ -275,7 +275,7 @@ SPEC CHECKSUMS:
   FirebaseSharedSwift: 9d2fa84a46676302b89dbd5e6e62bce2fe376909
   FirebaseStorage: 3ba2348d876c295236cdd9f408a62d3f9ff8e6b5
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_localization: 72299fb6cb4e51cae587bd953ed0b958040b71e6
+  flutter_localization: 4cfbf7b88962629bf7afc93156a271be80696f97
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMSessionFetcher: 904bdd2a82c635bcd6f44edf94cc8775c5d1d6e6
@@ -290,7 +290,7 @@ SPEC CHECKSUMS:
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
-  url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
+  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
 PODFILE CHECKSUM: d0100921f62f0e1602457d5ce1af79d6d33881d8
 

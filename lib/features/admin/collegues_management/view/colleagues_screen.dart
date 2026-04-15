@@ -71,7 +71,6 @@ class _ColleaguesManagementPageState extends State<ColleaguesManagementPage> {
                         await showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
-                          showDragHandle: true,
                           shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
                               top: Radius.circular(24),
@@ -89,14 +88,6 @@ class _ColleaguesManagementPageState extends State<ColleaguesManagementPage> {
                         ),
                       ),
                       title: Text(colleague.name),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(colleague.email),
-                          Text('Órabér: ${colleague.salary}'),
-                        ],
-                      ),
-                      isThreeLine: true,
                       trailing: const Icon(Icons.chevron_right),
                     );
                   },

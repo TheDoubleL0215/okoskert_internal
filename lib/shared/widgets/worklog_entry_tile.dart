@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:okoskert_internal/features/projects/project_details/project_data/ProjectDataScreen.dart';
 import 'package:okoskert_internal/features/worklog/models/worklog_item_model.dart';
 
@@ -25,6 +26,29 @@ class WorklogEntryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (item.wageTypeName != null && item.wageTypeName!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Row(
+                      spacing: 4,
+                      children: [
+                        Icon(
+                          LucideIcons.wallet,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                        Text(
+                          item.wageTypeName!,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Row(
                   spacing: 8,
                   children: [

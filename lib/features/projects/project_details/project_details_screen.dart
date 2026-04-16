@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,8 @@ import 'package:okoskert_internal/features/projects/create_project/create_projec
 import 'package:okoskert_internal/features/projects/project_details/contact_details_section.dart';
 import 'package:okoskert_internal/features/projects/project_details/description_accordion.dart';
 import 'package:okoskert_internal/features/projects/project_details/ui/ProjectStatusChip.dart';
+import 'package:okoskert_internal/features/worklog/models/wage_type_option.dart';
+import 'package:okoskert_internal/features/worklog/ui/wage_type_selection_bottom_sheet.dart';
 import 'package:okoskert_internal/features/warehouse/ui/material_details_bottom_sheet.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
@@ -232,7 +233,7 @@ class ProjectDetailsContent extends StatelessWidget {
                 children: [
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: () => _exportProjectData(context, projectId),
+                    onPressed: () => _beginProjectExport(context, projectId),
                     icon: const Icon(Icons.download),
                     label: const Text(
                       'Projekt adatainak exportálása',
@@ -258,7 +259,91 @@ class ProjectDetailsContent extends StatelessWidget {
 const String _projectExportBaseUrl =
     'https://us-central1-okoskert-dev.cloudfunctions.net/projectExport';
 
-Future<void> _exportProjectData(BuildContext context, String projectId) async {
+Future<List<WageTypeOption>> _fetchWageTypesForExport(
+  DocumentReference<Map<String, dynamic>> workspaceRef,
+) async {
+  final wageSnap =
+      await workspaceRef
+          .collection('wageTypes')
+          .orderBy('createdAt', descending: false)
+          .get();
+  return wageSnap.docs.map((doc) {
+    final data = doc.data();
+    final name = (data['name'] ?? '').toString().trim();
+    final dv = data['defaultValue'];
+    final defaultValue =
+        dv is int
+            ? dv
+            : dv is num
+            ? dv.toInt()
+            : int.tryParse(dv?.toString() ?? '') ?? 0;
+    return WageTypeOption(
+      id: doc.id,
+      name: name.isEmpty ? 'Névtelen' : name,
+      defaultValue: defaultValue,
+    );
+  }).toList();
+}
+
+Future<void> _beginProjectExport(BuildContext context, String projectId) async {
+  if (!context.mounted) return;
+  final workspace = context.read<WorkspaceProvider>();
+  if (workspace.isLoading && workspace.workspaceRef == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('A munkatér betöltése folyamatban...')),
+    );
+    return;
+  }
+  final ref = workspace.workspaceRef;
+  if (ref == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          workspace.error != null && workspace.error!.isNotEmpty
+              ? 'Munkatér: ${workspace.error}'
+              : 'Nem található munkatér a bértípusok betöltéséhez.',
+        ),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+    return;
+  }
+
+  try {
+    final wageTypes = await _fetchWageTypesForExport(ref);
+    if (!context.mounted) return;
+    if (wageTypes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nincs elérhető bértípus az exportáláshoz.'),
+        ),
+      );
+      return;
+    }
+    final selected = await showWageTypeSelectionBottomSheet(
+      context: context,
+      wageTypes: wageTypes,
+      confirmButtonLabel: 'Exportálás',
+    );
+    if (!context.mounted || selected == null) return;
+    await _exportProjectData(context, projectId, wageType: selected.id);
+  } catch (e, st) {
+    debugPrint('Wage types load error: $e $st');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Bértípusok betöltése sikertelen: $e'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+}
+
+Future<void> _exportProjectData(
+  BuildContext context,
+  String projectId, {
+  required String wageType,
+}) async {
   if (!context.mounted) return;
   showDialog<void>(
     context: context,
@@ -284,7 +369,7 @@ Future<void> _exportProjectData(BuildContext context, String projectId) async {
   try {
     final uri = Uri.parse(
       _projectExportBaseUrl,
-    ).replace(queryParameters: {'projectId': projectId});
+    ).replace(queryParameters: {'projectId': projectId, 'wageType': wageType});
     final response = await http.get(uri);
 
     if (!context.mounted) return;
@@ -328,6 +413,7 @@ Future<void> _exportProjectData(BuildContext context, String projectId) async {
 
     if (!context.mounted) return;
     final result = await OpenFilex.open(file.path);
+    if (!context.mounted) return;
     if (result.type != ResultType.done) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Fájl megnyitása: ${result.message}')),
